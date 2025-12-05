@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 
 export default function Home() {
   const features = [
@@ -26,7 +26,7 @@ export default function Home() {
     {
       title: 'Gestión de Materiales',
       description: 'Sube y gestiona PDFs, imágenes y documentos del curso',
-      icon: '📚',
+      icon: '📦',
       href: '/materiales',
       color: 'bg-orange-500',
     },
@@ -36,10 +36,10 @@ export default function Home() {
     <div className="px-4 py-8">
       {/* Hero Section */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">
+        <h1 className="text-4xl font-bold text-white mb-4">
           Bienvenido al Asistente Educativo con IA
         </h1>
-        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <p className="text-xl text-indigo-100 max-w-2xl mx-auto">
           Herramientas potenciadas por inteligencia artificial para facilitar
           la creación de contenido educativo y evaluación de estudiantes
         </p>

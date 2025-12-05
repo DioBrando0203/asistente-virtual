@@ -3,11 +3,11 @@
 export type AIModel = 'gemini' | 'gpt-4' | 'claude' | 'gpt-3.5';
 
 export interface QuizConfig {
+  curso: string;
   tema: string;
   tipoPreguntas: 'multiple' | 'verdadero-falso' | 'abierta' | 'mixta';
   numeroPreguntas: number;
-  dificultad?: 'facil' | 'media' | 'dificil';
-  modelo: AIModel;
+  //modelo: AIModel;
 }
 
 export interface Quiz {

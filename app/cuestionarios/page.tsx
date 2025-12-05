@@ -1,44 +1,65 @@
-'use client';
+﻿"use client";
 
-import { useState } from 'react';
-import ModelSelector from '@/components/ui/ModelSelector';
-import { AIModel, QuizConfig } from '@/types';
+import { useState } from "react";
+import ModelSelector from "@/components/ui/ModelSelector";
+import { AIModel, QuizConfig } from "@/types";
 
 export default function CuestionariosPage() {
   const [config, setConfig] = useState<QuizConfig>({
-    tema: '',
-    tipoPreguntas: 'multiple',
-    numeroPreguntas: 10,
-    dificultad: 'media',
-    modelo: 'gemini',
+    curso: "",
+    tema: "",
+    tipoPreguntas: "multiple",
+    numeroPreguntas: 5,
+    //modelo: "gemini",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
 
   const handleGenerar = async () => {
-    if (!config.tema.trim()) {
-      alert('Por favor ingresa un tema');
+    if (!config.curso.trim() || !config.tema.trim()) {
+      alert("Por favor ingresa el curso y el tema del curso");
       return;
     }
 
     setIsLoading(true);
+    setResultado(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+      const payload = { ...config, cantidad: config.numeroPreguntas };
+
       const response = await fetch(`${apiUrl}/cuestionarios/generar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setResultado(data.data);
+      const contentType = response.headers.get("content-type") || "";
+      let data: any = null;
+
+      if (contentType.includes("application/json")) {
+        data = await response.json();
       } else {
-        alert('Error: ' + data.error);
+        const text = await response.text();
+        throw new Error(`Error HTTP ${response.status}: ${text || response.statusText}`);
       }
-    } catch (error) {
+
+      const success = response.ok && (data?.success ?? true);
+      const resultadoData = data?.data ?? data;
+
+      if (!success || (!resultadoData?.questions && !resultadoData?.preguntas)) {
+        const message =
+          data?.error ||
+          data?.message ||
+          data?.detail ||
+          response.statusText ||
+          "No se pudo generar el cuestionario";
+        throw new Error(message);
+      }
+
+      setResultado(resultadoData);
+    } catch (error: any) {
       console.error(error);
-      alert('Error al generar cuestionario');
+      alert(`Error: ${error?.message || "No se pudo generar el cuestionario"}`);
     } finally {
       setIsLoading(false);
     }
@@ -50,33 +71,41 @@ export default function CuestionariosPage() {
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <div className="space-y-4">
+          {/* Curso */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Curso</label>
+            <input
+              type="text"
+              value={config.curso}
+              onChange={(e) => setConfig({ ...config, curso: e.target.value })}
+              placeholder="Ej: Álgebra lineal, Biología general, Literatura"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900"
+            />
+          </div>
+
           {/* Tema */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tema del Cuestionario
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tema del curso</label>
             <input
               type="text"
               value={config.tema}
               onChange={(e) => setConfig({ ...config, tema: e.target.value })}
-              placeholder="Ej: Física Cuántica, Historia de México, etc."
+              placeholder="Ej: Vectores y matrices, Células, Realismo mágico"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900"
             />
           </div>
 
           {/* Tipo de Preguntas */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Tipo de Preguntas
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Preguntas</label>
             <select
               value={config.tipoPreguntas}
-              onChange={(e) => setConfig({ ...config, tipoPreguntas: e.target.value as any })}
+              onChange={(e) => setConfig({ ...config, tipoPreguntas: e.target.value as QuizConfig["tipoPreguntas"] })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
             >
-              <option value="multiple">Opción Múltiple</option>
+              <option value="multiple">Opción múltiple</option>
               <option value="verdadero-falso">Verdadero/Falso</option>
-              <option value="abierta">Pregunta Abierta</option>
+              <option value="abierta">Pregunta abierta</option>
               <option value="mixta">Mixta</option>
             </select>
           </div>
@@ -84,45 +113,23 @@ export default function CuestionariosPage() {
           {/* Número de Preguntas */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Número de Preguntas: {config.numeroPreguntas}
+              Número de Preguntas (máximo 15): {config.numeroPreguntas}
             </label>
             <input
               type="range"
-              min="5"
-              max="50"
+              min="1"
+              max="15"
               value={config.numeroPreguntas}
-              onChange={(e) => setConfig({ ...config, numeroPreguntas: parseInt(e.target.value) })}
+              onChange={(e) => setConfig({ ...config, numeroPreguntas: parseInt(e.target.value, 10) })}
               className="w-full"
             />
           </div>
 
-          {/* Dificultad */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Dificultad
-            </label>
-            <div className="flex space-x-4">
-              {['facil', 'media', 'dificil'].map((nivel) => (
-                <button
-                  key={nivel}
-                  onClick={() => setConfig({ ...config, dificultad: nivel as any })}
-                  className={`px-4 py-2 rounded-lg font-medium ${
-                    config.dificultad === nivel
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
-                >
-                  {nivel.charAt(0).toUpperCase() + nivel.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Selector de Modelo */}
+          {/* Selector de Modelo
           <ModelSelector
-            selected={config.modelo}
-            onChange={(modelo: AIModel) => setConfig({ ...config, modelo })}
-          />
+            selected={config.modelo as AIModel}
+            onChange={(modelo) => setConfig({ ...config, modelo })}
+          /> */}
 
           {/* Botón Generar */}
           <button
@@ -130,7 +137,7 @@ export default function CuestionariosPage() {
             disabled={isLoading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isLoading ? 'Generando...' : 'Generar Cuestionario'}
+            {isLoading ? "Generando..." : "Generar Cuestionario"}
           </button>
         </div>
       </div>
@@ -140,25 +147,30 @@ export default function CuestionariosPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Cuestionario Generado</h2>
           <div className="space-y-4">
-            {resultado.preguntas?.map((pregunta: any, index: number) => (
+            {(resultado.questions || resultado.preguntas)?.map((pregunta: any, index: number) => (
               <div key={index} className="border-b pb-4">
                 <p className="font-semibold text-gray-900 mb-2">
-                  {index + 1}. {pregunta.pregunta}
+                  {index + 1}. {pregunta.question || pregunta.pregunta}
                 </p>
-                {pregunta.opciones && (
+                {pregunta.options && pregunta.options.length > 0 && (
                   <ul className="ml-6 space-y-1">
-                    {pregunta.opciones.map((opcion: string, i: number) => (
+                    {pregunta.options.map((opcion: string, i: number) => (
                       <li key={i} className="text-gray-700">
                         {String.fromCharCode(65 + i)}) {opcion}
                       </li>
                     ))}
                   </ul>
                 )}
+                {pregunta.answer && (
+                  <p className="text-sm text-gray-600 mt-2">Respuesta: {pregunta.answer}</p>
+                )}
               </div>
             ))}
           </div>
           <button
-            onClick={() => {/* Aquí iría la lógica de descarga */}}
+            onClick={() => {
+              /* Aquí iría la lógica de descarga */
+            }}
             className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
           >
             Descargar PDF

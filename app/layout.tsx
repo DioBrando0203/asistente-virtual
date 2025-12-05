@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
@@ -33,7 +33,7 @@ export default function RootLayout({
             <div className="flex justify-between h-16">
               <div className="flex space-x-8">
                 <Link href="/" className="flex items-center text-xl font-bold text-indigo-600">
-                  🎓 Asistente Educativo
+                  Asistente Educativo
                 </Link>
                 <div className="hidden md:flex md:space-x-4 md:items-center">
                   <Link href="/dashboard" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
