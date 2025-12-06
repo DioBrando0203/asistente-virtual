@@ -22,55 +22,85 @@ export default function MaterialesPage() {
 
     setIsUploading(true);
     try {
-      // Enviar archivo al backend para extracción de texto
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+
+      // PASO 1: Enviar archivo al backend para extracción de texto
       const extractFormData = new FormData();
       extractFormData.append('file', file);
 
-      const response = await fetch(`${apiUrl}/materiales/extract-text`, {
+      const extractResponse = await fetch(`${apiUrl}/materiales/extract-text`, {
         method: 'POST',
         body: extractFormData,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (!extractResponse.ok) {
+        const errorData = await extractResponse.json();
         throw new Error(errorData.error || 'Error al extraer texto del archivo');
       }
 
-      const data = await response.json();
+      const extractData = await extractResponse.json();
 
-      if (!data.success || !data.text) {
+      if (!extractData.success || !extractData.text) {
         throw new Error('No se pudo extraer texto del archivo');
       }
 
-      const extractedText = data.text.trim();
+      const extractedText = extractData.text.trim();
 
       if (!extractedText) {
         alert('El archivo no contiene texto extraíble.');
         return;
       }
 
-      const baseName = file.name.replace(/\.[^/.]+$/, '') || 'material';
-      const textBlob = new Blob([extractedText], { type: 'text/plain' });
       setExtractedPreview(extractedText);
 
-      // Guardamos solo el texto extraído en un .txt (modo sin backend completo).
+      // PASO 2: Crear archivo .txt con el texto extraído
+      const baseName = file.name.replace(/\.[^/.]+$/, '') || 'material';
+      const txtFileName = `${baseName}.txt`;
+      const textBlob = new Blob([extractedText], { type: 'text/plain' });
+      const txtFile = new File([textBlob], txtFileName, { type: 'text/plain' });
+
+      // PASO 3: Subir el archivo .txt a Supabase
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', txtFile);
+
+      // Usar el filtro de curso como path en el bucket (opcional)
+      if (filtro) {
+        uploadFormData.append('path', `cursos/${filtro}`);
+      }
+
+      const uploadResponse = await fetch(`${apiUrl}/materiales/upload`, {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || 'Error al subir archivo a Supabase');
+      }
+
+      const uploadData = await uploadResponse.json();
+
+      if (!uploadData.success) {
+        throw new Error('No se pudo subir el archivo a Supabase');
+      }
+
+      // PASO 4: Guardar el material con la URL de Supabase
       const nuevoMaterial: Material = {
-        id: `local-${Date.now()}`,
-        nombre: `${baseName}.txt`,
+        id: `supabase-${Date.now()}`,
+        nombre: txtFileName,
         tipo: 'text',
-        url: URL.createObjectURL(textBlob),
+        url: uploadData.public_url,
         tamano: textBlob.size,
         curso: filtro || 'Sin curso',
         uploadedAt: new Date(),
       };
 
       setMateriales((prev) => [nuevoMaterial, ...prev]);
-      alert('Texto extraído correctamente! (guardado localmente)');
+      alert('¡Archivo subido exitosamente a Supabase!');
       formElement.reset();
     } catch (error) {
       console.error(error);
-      const message = error instanceof Error ? error.message : 'Error al subir material';
+      const message = error instanceof Error ? error.message : 'Error al procesar el archivo';
       alert(message);
       setExtractedPreview('');
     } finally {
@@ -126,7 +156,7 @@ export default function MaterialesPage() {
               required
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              El sistema extraerá automáticamente el texto del archivo
+              El sistema extraerá el texto y lo subirá automáticamente a Supabase
             </p>
           </div>
           <button
@@ -134,7 +164,7 @@ export default function MaterialesPage() {
             disabled={isUploading}
             className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {isUploading ? 'Extrayendo texto...' : 'Subir y Extraer Texto'}
+            {isUploading ? 'Procesando y subiendo a Supabase...' : 'Subir y Procesar Material'}
           </button>
         </form>
       </div>
