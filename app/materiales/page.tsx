@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Material } from '@/types';
+import { extractTextFromFile } from '@/utils/fileTextExtractor';
 
 export default function MaterialesPage() {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [curso, setCurso] = useState('');
   const [filtro, setFiltro] = useState('');
+  const [extractedPreview, setExtractedPreview] = useState('');
 
   const fetchMateriales = async () => {
     try {
@@ -23,23 +24,36 @@ export default function MaterialesPage() {
     }
   };
 
-  useEffect(() => {
-    fetchMateriales();
-  }, [filtro]);
+  // TEMPORAL: Comentado para probar sin backend
+  // useEffect(() => {
+  //   fetchMateriales();
+  // }, [filtro]);
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const file = formData.get('file') as File;
 
-    if (!formData.get('file') || !curso) {
-      alert('Por favor selecciona un archivo e ingresa el nombre del curso');
+    if (!file) {
+      alert('Por favor selecciona un archivo');
       return;
     }
 
     setIsUploading(true);
     try {
+      // Intentar extraer texto del archivo (PDF, DOCX, TXT)
+      try {
+        const extractedText = await extractTextFromFile(file);
+        formData.append('extractedText', extractedText);
+        setExtractedPreview(extractedText);
+        console.log('Texto extraído exitosamente:', extractedText.substring(0, 100) + '...');
+      } catch (extractError) {
+        console.warn('No se pudo extraer texto del archivo:', extractError);
+        setExtractedPreview('');
+        // Continuar sin texto extraído (para imágenes u otros archivos)
+      }
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-      formData.append('curso', curso);
 
       const response = await fetch(`${apiUrl}/materiales/subir`, {
         method: 'POST',
@@ -50,8 +64,8 @@ export default function MaterialesPage() {
       if (data.success) {
         alert('Material subido exitosamente');
         fetchMateriales();
-        setCurso('');
         e.currentTarget.reset();
+        setExtractedPreview('');
       } else {
         alert('Error: ' + data.error);
       }
@@ -87,10 +101,10 @@ export default function MaterialesPage() {
 
   const getFileIcon = (tipo: string) => {
     switch (tipo) {
-      case 'pdf': return '📄';
-      case 'image': return '🖼️';
-      case 'word': return '📝';
-      default: return '📎';
+      case 'pdf': return 'PDF';
+      case 'image': return 'IMG';
+      case 'word': return 'DOC';
+      default: return 'FILE';
     }
   };
 
@@ -108,42 +122,16 @@ export default function MaterialesPage() {
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Subir Nuevo Material</h2>
         <form onSubmit={handleUpload} className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nombre del Curso
-              </label>
-              <input
-                type="text"
-                value={curso}
-                onChange={(e) => setCurso(e.target.value)}
-                placeholder="Ej: Matemáticas, Física, etc."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Seleccionar Archivo
-              </label>
-              <input
-                type="file"
-                name="file"
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
-                required
-              />
-            </div>
-          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre del Material (Opcional)
+              Seleccionar Archivo
             </label>
             <input
-              type="text"
-              name="nombre"
-              placeholder="Ej: Clase 1 - Introducción"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
+              type="file"
+              name="file"
+              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+              required
             />
           </div>
           <button
@@ -151,10 +139,31 @@ export default function MaterialesPage() {
             disabled={isUploading}
             className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {isUploading ? 'Subiendo...' : '📤 Subir Material'}
+            {isUploading ? 'Subiendo...' : 'Subir Material'}
           </button>
         </form>
       </div>
+
+      {/* Preview de texto extraído - TEMPORAL PARA PRUEBAS */}
+      {extractedPreview && (
+        <div className="bg-green-50 border-2 border-green-500 rounded-lg shadow-md p-6 mb-6">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="text-xl font-semibold text-green-900">Texto Extraído (Preview)</h2>
+            <button
+              onClick={() => setExtractedPreview('')}
+              className="text-green-700 hover:text-green-900 font-semibold"
+            >
+              Cerrar
+            </button>
+          </div>
+          <div className="bg-white p-4 rounded border border-green-300 max-h-96 overflow-y-auto">
+            <p className="text-sm text-gray-700 whitespace-pre-wrap">{extractedPreview}</p>
+          </div>
+          <p className="text-sm text-green-700 mt-2">
+            Total: {extractedPreview.length} caracteres
+          </p>
+        </div>
+      )}
 
       {/* Filtro */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
@@ -188,7 +197,6 @@ export default function MaterialesPage() {
 
         {materiales.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <div className="text-6xl mb-4">📚</div>
             <p className="text-lg">No hay materiales subidos aún</p>
             <p className="text-sm">Sube tu primer archivo usando el formulario arriba</p>
           </div>
@@ -200,7 +208,9 @@ export default function MaterialesPage() {
                 className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="text-4xl">{getFileIcon(material.tipo)}</div>
+                  <div className="bg-gray-100 px-3 py-1 rounded text-sm font-semibold text-gray-700">
+                    {getFileIcon(material.tipo)}
+                  </div>
                   <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">
                     {material.curso}
                   </span>
