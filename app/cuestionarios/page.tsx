@@ -15,6 +15,8 @@ export default function CuestionariosPage() {
   const [resultado, setResultado] = useState<any>(null);
   const [temasDisponibles, setTemasDisponibles] = useState<string[]>([]);
   const [isLoadingTemas, setIsLoadingTemas] = useState(false);
+  const [contenidoMaterial, setContenidoMaterial] = useState<string>("");
+  const [isLoadingContenido, setIsLoadingContenido] = useState(false);
 
   // Cargar lista de archivos del bucket al montar el componente
   useEffect(() => {
@@ -57,6 +59,55 @@ export default function CuestionariosPage() {
     cargarTemas();
   }, []);
 
+  // Cargar contenido del archivo cuando se selecciona un tema
+  const cargarContenidoTema = async (nombreArchivo: string) => {
+    if (!nombreArchivo) {
+      setContenidoMaterial("");
+      return;
+    }
+
+    setIsLoadingContenido(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+      // Agregar extensión .txt si no la tiene
+      const archivoConExtension = nombreArchivo.endsWith('.txt') ? nombreArchivo : `${nombreArchivo}.txt`;
+
+      const response = await fetch(`${apiUrl}/materiales/list-topics-with-content`);
+
+      if (!response.ok) {
+        throw new Error('Error al cargar contenido del material');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.files) {
+        let filesArray = Array.isArray(data.files) ? data.files : Object.values(data.files);
+
+        // Buscar el archivo específico
+        const archivo = filesArray.find((f: any) => f.name === archivoConExtension);
+
+        if (archivo && archivo.content) {
+          setContenidoMaterial(archivo.content);
+          console.log(`Contenido cargado: ${archivo.content.length} caracteres`);
+        } else {
+          console.warn(`No se encontró contenido para: ${archivoConExtension}`);
+          setContenidoMaterial("");
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar contenido:', error);
+      setContenidoMaterial("");
+    } finally {
+      setIsLoadingContenido(false);
+    }
+  };
+
+  // Manejar cambio de tema
+  const handleTemaChange = (tema: string) => {
+    setConfig({ ...config, tema });
+    cargarContenidoTema(tema);
+  };
+
   const handleGenerar = async () => {
     if (!config.tema) {
       alert("Por favor selecciona un tema del curso");
@@ -67,7 +118,13 @@ export default function CuestionariosPage() {
     setResultado(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
-      const payload = { ...config, cantidad: config.numeroPreguntas };
+
+      // Agregar contenido del material al payload
+      const payload = {
+        ...config,
+        cantidad: config.numeroPreguntas,
+        contenidoMaterial: contenidoMaterial || undefined // Solo enviar si existe
+      };
 
       const response = await fetch(`${apiUrl}/cuestionarios/generar`, {
         method: "POST",
@@ -121,12 +178,12 @@ export default function CuestionariosPage() {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tema del Curso</label>
             <select
               value={config.tema}
-              onChange={(e) => setConfig({ ...config, tema: e.target.value })}
+              onChange={(e) => handleTemaChange(e.target.value)}
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              disabled={isLoadingTemas}
+              disabled={isLoadingTemas || isLoadingContenido}
             >
               <option value="">
-                {isLoadingTemas ? "Cargando temas..." : "Selecciona un tema"}
+                {isLoadingTemas ? "Cargando temas..." : isLoadingContenido ? "Cargando contenido..." : "Selecciona un tema"}
               </option>
               {temasDisponibles.map((tema) => (
                 <option key={tema} value={tema}>
@@ -137,6 +194,11 @@ export default function CuestionariosPage() {
             {temasDisponibles.length === 0 && !isLoadingTemas && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 No hay materiales disponibles. Sube archivos en la sección de Gestión de Materiales.
+              </p>
+            )}
+            {contenidoMaterial && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                ✓ Material cargado ({contenidoMaterial.length} caracteres)
               </p>
             )}
           </div>

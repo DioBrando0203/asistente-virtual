@@ -22,6 +22,8 @@ export default function EvaluadorPage() {
   const [resultado, setResultado] = useState<ResultadoEvaluacion | null>(null);
   const [temasDisponibles, setTemasDisponibles] = useState<string[]>([]);
   const [isLoadingTemas, setIsLoadingTemas] = useState(false);
+  const [contenidoMaterial, setContenidoMaterial] = useState<string>('');
+  const [isLoadingContenido, setIsLoadingContenido] = useState(false);
 
   // Cargar lista de archivos del bucket al montar el componente
   useEffect(() => {
@@ -64,6 +66,52 @@ export default function EvaluadorPage() {
     cargarTemas();
   }, []);
 
+  // Cargar contenido del archivo cuando se selecciona un tema
+  const cargarContenidoTema = async (nombreArchivo: string) => {
+    if (!nombreArchivo) {
+      setContenidoMaterial('');
+      return;
+    }
+
+    setIsLoadingContenido(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const archivoConExtension = nombreArchivo.endsWith('.txt') ? nombreArchivo : `${nombreArchivo}.txt`;
+
+      const response = await fetch(`${apiUrl}/materiales/list-topics-with-content`);
+
+      if (!response.ok) {
+        throw new Error('Error al cargar contenido del material');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.files) {
+        let filesArray = Array.isArray(data.files) ? data.files : Object.values(data.files);
+        const archivo = filesArray.find((f: any) => f.name === archivoConExtension);
+
+        if (archivo && archivo.content) {
+          setContenidoMaterial(archivo.content);
+          console.log(`Contenido cargado: ${archivo.content.length} caracteres`);
+        } else {
+          console.warn(`No se encontró contenido para: ${archivoConExtension}`);
+          setContenidoMaterial('');
+        }
+      }
+    } catch (error) {
+      console.error('Error al cargar contenido:', error);
+      setContenidoMaterial('');
+    } finally {
+      setIsLoadingContenido(false);
+    }
+  };
+
+  // Manejar cambio de tema
+  const handleTemaChange = (tema: string) => {
+    setConfig({ ...config, temaCurso: tema });
+    cargarContenidoTema(tema);
+  };
+
   const handleEvaluar = async () => {
     if (!config.temaCurso || !config.pregunta.trim() || !config.respuestaEstudiante.trim()) {
       alert('Por favor completa todos los campos');
@@ -73,10 +121,17 @@ export default function EvaluadorPage() {
     setIsLoading(true);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+
+      // Agregar contenido del material al payload
+      const payload = {
+        ...config,
+        contenidoMaterial: contenidoMaterial || undefined
+      };
+
       const response = await fetch(`${apiUrl}/evaluador/evaluar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(config),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -130,12 +185,12 @@ export default function EvaluadorPage() {
             </label>
             <select
               value={config.temaCurso}
-              onChange={(e) => setConfig({ ...config, temaCurso: e.target.value })}
+              onChange={(e) => handleTemaChange(e.target.value)}
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              disabled={isLoadingTemas}
+              disabled={isLoadingTemas || isLoadingContenido}
             >
               <option value="">
-                {isLoadingTemas ? "Cargando temas..." : "Selecciona un tema"}
+                {isLoadingTemas ? "Cargando temas..." : isLoadingContenido ? "Cargando contenido..." : "Selecciona un tema"}
               </option>
               {temasDisponibles.map((tema) => (
                 <option key={tema} value={tema}>
@@ -146,6 +201,11 @@ export default function EvaluadorPage() {
             {temasDisponibles.length === 0 && !isLoadingTemas && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 No hay materiales disponibles. Sube archivos en la sección de Gestión de Materiales.
+              </p>
+            )}
+            {contenidoMaterial && (
+              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                ✓ Material cargado ({contenidoMaterial.length} caracteres)
               </p>
             )}
           </div>
