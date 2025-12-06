@@ -1,8 +1,7 @@
 ﻿'use client';
 
-import { useState } from 'react';
-import ModelSelector from '@/components/ui/ModelSelector';
-import { AIModel, EvaluacionConfig } from '@/types';
+import { useState, useEffect } from 'react';
+import { EvaluacionConfig } from '@/types';
 
 type ResultadoEvaluacion = {
   score: number;
@@ -21,9 +20,52 @@ export default function EvaluadorPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [resultado, setResultado] = useState<ResultadoEvaluacion | null>(null);
+  const [temasDisponibles, setTemasDisponibles] = useState<string[]>([]);
+  const [isLoadingTemas, setIsLoadingTemas] = useState(false);
+
+  // Cargar lista de archivos del bucket al montar el componente
+  useEffect(() => {
+    const cargarTemas = async () => {
+      setIsLoadingTemas(true);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+        const response = await fetch(`${apiUrl}/materiales/list-topics`);
+
+        if (!response.ok) {
+          throw new Error('Error al cargar temas del bucket');
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          // El backend puede devolver files como array o como objeto
+          let filesArray: string[] = [];
+
+          if (Array.isArray(data.files)) {
+            filesArray = data.files;
+          } else if (data.files && typeof data.files === 'object') {
+            filesArray = Object.values(data.files);
+          }
+
+          // Remover la extensión .txt de los nombres para mostrar más limpio
+          const temas = filesArray.map((file: string) => file.replace(/\.txt$/, ''));
+          setTemasDisponibles(temas);
+        } else {
+          console.error('Formato de respuesta inesperado:', data);
+        }
+      } catch (error) {
+        console.error('Error al cargar temas:', error);
+        alert('No se pudieron cargar los temas disponibles del bucket');
+      } finally {
+        setIsLoadingTemas(false);
+      }
+    };
+
+    cargarTemas();
+  }, []);
 
   const handleEvaluar = async () => {
-    if (!config.temaCurso.trim() || !config.pregunta.trim() || !config.respuestaEstudiante.trim()) {
+    if (!config.temaCurso || !config.pregunta.trim() || !config.respuestaEstudiante.trim()) {
       alert('Por favor completa todos los campos');
       return;
     }
@@ -77,18 +119,35 @@ export default function EvaluadorPage() {
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Evaluador de Respuestas</h1>
 
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6 text-gray-900 dark:text-white">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Evalúa las respuestas de los estudiantes con retroalimentación detallada del curso CTA
+        </p>
         <div className="space-y-4">
+          {/* Tema del Curso */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tema del Curso
             </label>
-            <input
-              type="text"
+            <select
               value={config.temaCurso}
               onChange={(e) => setConfig({ ...config, temaCurso: e.target.value })}
-              placeholder="Ej: Matemáticas - Álgebra Lineal"
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
+              disabled={isLoadingTemas}
+            >
+              <option value="">
+                {isLoadingTemas ? "Cargando temas..." : "Selecciona un tema"}
+              </option>
+              {temasDisponibles.map((tema) => (
+                <option key={tema} value={tema}>
+                  {tema}
+                </option>
+              ))}
+            </select>
+            {temasDisponibles.length === 0 && !isLoadingTemas && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                No hay materiales disponibles. Sube archivos en la sección de Gestión de Materiales.
+              </p>
+            )}
           </div>
 
           <div>
@@ -116,12 +175,6 @@ export default function EvaluadorPage() {
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
             />
           </div>
-
-          {/* Selector de Modelo 
-          <ModelSelector
-            selected={config.modelo}
-            onChange={(modelo: AIModel) => setConfig({ ...config, modelo })}
-          />*/}
 
           <button
             onClick={handleEvaluar}

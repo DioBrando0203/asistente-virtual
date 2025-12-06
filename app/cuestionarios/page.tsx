@@ -1,23 +1,65 @@
 ﻿"use client";
 
-import { useState } from "react";
-import ModelSelector from "@/components/ui/ModelSelector";
-import { AIModel, QuizConfig } from "@/types";
+import { useState, useEffect } from "react";
+import { QuizConfig } from "@/types";
 
 export default function CuestionariosPage() {
   const [config, setConfig] = useState<QuizConfig>({
-    curso: "",
+    curso: "CTA",
     tema: "",
-    tipoPreguntas: "multiple",
+    tipoPreguntas: "mixta",
     numeroPreguntas: 5,
     //modelo: "gemini",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [resultado, setResultado] = useState<any>(null);
+  const [temasDisponibles, setTemasDisponibles] = useState<string[]>([]);
+  const [isLoadingTemas, setIsLoadingTemas] = useState(false);
+
+  // Cargar lista de archivos del bucket al montar el componente
+  useEffect(() => {
+    const cargarTemas = async () => {
+      setIsLoadingTemas(true);
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+        const response = await fetch(`${apiUrl}/materiales/list-topics`);
+
+        if (!response.ok) {
+          throw new Error("Error al cargar temas del bucket");
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+          // El backend puede devolver files como array o como objeto
+          let filesArray: string[] = [];
+
+          if (Array.isArray(data.files)) {
+            filesArray = data.files;
+          } else if (data.files && typeof data.files === 'object') {
+            filesArray = Object.values(data.files);
+          }
+
+          // Remover la extensión .txt de los nombres para mostrar más limpio
+          const temas = filesArray.map((file: string) => file.replace(/\.txt$/, ''));
+          setTemasDisponibles(temas);
+        } else {
+          console.error("Formato de respuesta inesperado:", data);
+        }
+      } catch (error) {
+        console.error("Error al cargar temas:", error);
+        alert("No se pudieron cargar los temas disponibles del bucket");
+      } finally {
+        setIsLoadingTemas(false);
+      }
+    };
+
+    cargarTemas();
+  }, []);
 
   const handleGenerar = async () => {
-    if (!config.curso.trim() || !config.tema.trim()) {
-      alert("Por favor ingresa el curso y el tema del curso");
+    if (!config.tema) {
+      alert("Por favor selecciona un tema del curso");
       return;
     }
 
@@ -70,29 +112,33 @@ export default function CuestionariosPage() {
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Generador de Cuestionarios</h1>
 
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Genera cuestionarios automáticos basados en el material del curso CTA
+        </p>
         <div className="space-y-4">
-          {/* Curso */}
+          {/* Tema del Curso */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Curso</label>
-            <input
-              type="text"
-              value={config.curso}
-              onChange={(e) => setConfig({ ...config, curso: e.target.value })}
-              placeholder="Ej: Álgebra lineal, Biología general, Literatura"
-              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
-          </div>
-
-          {/* Tema */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tema del curso</label>
-            <input
-              type="text"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tema del Curso</label>
+            <select
               value={config.tema}
               onChange={(e) => setConfig({ ...config, tema: e.target.value })}
-              placeholder="Ej: Vectores y matrices, Células, Realismo mágico"
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            />
+              disabled={isLoadingTemas}
+            >
+              <option value="">
+                {isLoadingTemas ? "Cargando temas..." : "Selecciona un tema"}
+              </option>
+              {temasDisponibles.map((tema) => (
+                <option key={tema} value={tema}>
+                  {tema}
+                </option>
+              ))}
+            </select>
+            {temasDisponibles.length === 0 && !isLoadingTemas && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                No hay materiales disponibles. Sube archivos en la sección de Gestión de Materiales.
+              </p>
+            )}
           </div>
 
           {/* Tipo de Preguntas */}
@@ -103,26 +149,26 @@ export default function CuestionariosPage() {
               onChange={(e) => setConfig({ ...config, tipoPreguntas: e.target.value as QuizConfig["tipoPreguntas"] })}
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value="multiple">Opción múltiple</option>
-              <option value="verdadero-falso">Verdadero/Falso</option>
-              <option value="abierta">Pregunta abierta</option>
-              <option value="mixta">Mixta</option>
+              <option value="mixta">Mixto</option>
+              <option value="verdadero-falso">Verdadero y Falso</option>
+              <option value="multiple">Opción Múltiple</option>
+              <option value="abierta">Preguntas Abiertas</option>
             </select>
           </div>
 
           {/* Número de Preguntas */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Número de Preguntas (máximo 15): {config.numeroPreguntas}
-            </label>
-            <input
-              type="range"
-              min="1"
-              max="15"
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Número de Preguntas</label>
+            <select
               value={config.numeroPreguntas}
               onChange={(e) => setConfig({ ...config, numeroPreguntas: parseInt(e.target.value, 10) })}
-              className="w-full"
-            />
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            >
+              <option value={5}>5 preguntas</option>
+              <option value={10}>10 preguntas</option>
+              <option value={15}>15 preguntas</option>
+              <option value={20}>20 preguntas</option>
+            </select>
           </div>
 
           {/* Selector de Modelo

@@ -1,13 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Material } from '@/types';
 
 export default function MaterialesPage() {
   const [materiales, setMateriales] = useState<Material[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isLoadingMateriales, setIsLoadingMateriales] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [extractedPreview, setExtractedPreview] = useState('');
+
+  // Cargar materiales existentes del bucket al montar el componente
+  useEffect(() => {
+    cargarMateriales();
+  }, []);
+
+  const cargarMateriales = async () => {
+    setIsLoadingMateriales(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const response = await fetch(`${apiUrl}/materiales/list-topics`);
+
+      if (!response.ok) {
+        console.error(`Error HTTP ${response.status}:`, await response.text());
+        throw new Error(`Error al cargar materiales del bucket (HTTP ${response.status})`);
+      }
+
+      const data = await response.json();
+      console.log('Respuesta de /materiales/list-topics:', data);
+
+      if (data.success) {
+        // El backend puede devolver files como array o como objeto (por array_filter preservando keys)
+        let filesArray: string[] = [];
+
+        if (Array.isArray(data.files)) {
+          filesArray = data.files;
+        } else if (data.files && typeof data.files === 'object') {
+          // Convertir objeto a array de valores
+          filesArray = Object.values(data.files);
+        }
+
+        if (filesArray.length === 0) {
+          console.log('El bucket está vacío - no hay archivos .txt');
+          setMateriales([]);
+        } else {
+          // Mapear los archivos del bucket al formato Material
+          const materialesCargados: Material[] = filesArray.map((fileName: string, index: number) => ({
+            id: `supabase-${fileName}-${index}`,
+            nombre: fileName,
+            tipo: 'text',
+            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ljxppmeunlfgqhuqxtfz.supabase.co'}/storage/v1/object/public/Nube2/${fileName}`,
+            tamano: 0, // No tenemos el tamaño desde la API actual
+            curso: 'CTA', // Podrías extraer esto del path si organizas por carpetas
+            uploadedAt: new Date(),
+          }));
+          setMateriales(materialesCargados);
+          console.log(`${materialesCargados.length} materiales cargados del bucket`);
+        }
+      } else if (data.success === false && data.error) {
+        console.error('Error del backend:', data.error);
+        setMateriales([]);
+      } else {
+        console.error('Formato de respuesta inesperado:', data);
+        console.error('Se esperaba: { success: true, files: [...] }');
+        setMateriales([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar materiales:', error);
+      setMateriales([]);
+      // No mostramos alert aquí para no molestar al usuario al cargar la página
+    } finally {
+      setIsLoadingMateriales(false);
+    }
+  };
 
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -84,18 +149,9 @@ export default function MaterialesPage() {
         throw new Error('No se pudo subir el archivo a Supabase');
       }
 
-      // PASO 4: Guardar el material con la URL de Supabase
-      const nuevoMaterial: Material = {
-        id: `supabase-${Date.now()}`,
-        nombre: txtFileName,
-        tipo: 'text',
-        url: uploadData.public_url,
-        tamano: textBlob.size,
-        curso: filtro || 'Sin curso',
-        uploadedAt: new Date(),
-      };
+      // PASO 4: Recargar la lista completa de materiales desde Supabase
+      await cargarMateriales();
 
-      setMateriales((prev) => [nuevoMaterial, ...prev]);
       alert('¡Archivo subido exitosamente a Supabase!');
       formElement.reset();
     } catch (error) {
@@ -112,8 +168,10 @@ export default function MaterialesPage() {
     if (!confirm('¿Estás seguro de eliminar este material?')) return;
 
     try {
+      // NOTA: Esta funcionalidad requiere una API de eliminación en el backend
+      // Por ahora solo ocultamos del estado local
       setMateriales((prev) => prev.filter((mat) => mat.id !== id));
-      alert('Material eliminado (modo sin backend)');
+      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminación en el backend)');
     } catch (error) {
       console.error(error);
       alert('Error al eliminar material');
@@ -220,7 +278,11 @@ export default function MaterialesPage() {
           Materiales Subidos ({materiales.length})
         </h2>
 
-        {materiales.length === 0 ? (
+        {isLoadingMateriales ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p className="text-lg">Cargando materiales del bucket...</p>
+          </div>
+        ) : materiales.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <p className="text-lg">No hay materiales subidos aún</p>
             <p className="text-sm">Sube tu primer archivo usando el formulario arriba</p>
