@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Material } from '@/types';
-import { extractTextFromFile } from '@/utils/fileTextExtractor';
 
 export default function MaterialesPage() {
   const [materiales, setMateriales] = useState<Material[]>([]);
@@ -23,21 +22,39 @@ export default function MaterialesPage() {
 
     setIsUploading(true);
     try {
-      // Extraer texto del archivo (PDF, DOCX, TXT). Si falla, no guardamos nada.
-      const extractedText = await extractTextFromFile(file);
-      const trimmedText = extractedText.trim();
+      // Enviar archivo al backend para extracción de texto
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const extractFormData = new FormData();
+      extractFormData.append('file', file);
 
-      if (!trimmedText) {
-        alert('No se pudo extraer texto del archivo.');
+      const response = await fetch(`${apiUrl}/materiales/extract-text`, {
+        method: 'POST',
+        body: extractFormData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Error al extraer texto del archivo');
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.text) {
+        throw new Error('No se pudo extraer texto del archivo');
+      }
+
+      const extractedText = data.text.trim();
+
+      if (!extractedText) {
+        alert('El archivo no contiene texto extraíble.');
         return;
       }
 
       const baseName = file.name.replace(/\.[^/.]+$/, '') || 'material';
-      const textBlob = new Blob([trimmedText], { type: 'text/plain' });
-      setExtractedPreview(trimmedText);
-      formData.append('extractedText', trimmedText);
+      const textBlob = new Blob([extractedText], { type: 'text/plain' });
+      setExtractedPreview(extractedText);
 
-      // Guardamos solo el texto extraído en un .txt (modo sin backend).
+      // Guardamos solo el texto extraído en un .txt (modo sin backend completo).
       const nuevoMaterial: Material = {
         id: `local-${Date.now()}`,
         nombre: `${baseName}.txt`,
@@ -49,13 +66,13 @@ export default function MaterialesPage() {
       };
 
       setMateriales((prev) => [nuevoMaterial, ...prev]);
-      alert('Material guardado localmente (sin backend configurado)');
+      alert('Texto extraído correctamente! (guardado localmente)');
       formElement.reset();
-      setExtractedPreview('');
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : 'Error al subir material';
       alert(message);
+      setExtractedPreview('');
     } finally {
       setIsUploading(false);
     }
@@ -99,34 +116,37 @@ export default function MaterialesPage() {
         <form onSubmit={handleUpload} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Seleccionar Archivo
+              Seleccionar Archivo (PDF, DOCX o TXT)
             </label>
             <input
               type="file"
               name="file"
-              accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-              className="w-full px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800 bg-white dark:bg-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              accept=".pdf,.docx,.txt"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900/40 dark:file:text-indigo-200"
               required
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              El sistema extraerá automáticamente el texto del archivo
+            </p>
           </div>
           <button
             type="submit"
             disabled={isUploading}
-            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {isUploading ? 'Subiendo...' : 'Subir Material'}
+            {isUploading ? 'Extrayendo texto...' : 'Subir y Extraer Texto'}
           </button>
         </form>
       </div>
 
-      {/* Preview de texto extraído - TEMPORAL PARA PRUEBAS */}
+      {/* Preview de texto extraído */}
       {extractedPreview && (
         <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-400 rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-3">
-            <h2 className="text-xl font-semibold text-green-900">Texto Extraído (Preview)</h2>
+            <h2 className="text-xl font-semibold text-green-900 dark:text-green-100">Texto Extraído Exitosamente</h2>
             <button
               onClick={() => setExtractedPreview('')}
-              className="text-green-700 dark:text-green-200 hover:text-green-900 font-semibold"
+              className="text-green-700 dark:text-green-200 hover:text-green-900 dark:hover:text-white font-semibold"
             >
               Cerrar
             </button>
@@ -135,7 +155,7 @@ export default function MaterialesPage() {
             <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{extractedPreview}</p>
           </div>
           <p className="text-sm text-green-700 dark:text-green-200 mt-2">
-            Total: {extractedPreview.length} caracteres
+            Total: {extractedPreview.length} caracteres extraídos
           </p>
         </div>
       )}
@@ -151,7 +171,7 @@ export default function MaterialesPage() {
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
             placeholder="Escribe el nombre del curso..."
-            className="flex-1 px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800 bg-white dark:bg-gray-800"
+            className="flex-1 px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
           />
           {filtro && (
             <button
@@ -196,17 +216,16 @@ export default function MaterialesPage() {
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                   {formatFileSize(material.tamano)} • {material.tipo.toUpperCase()}
                 </p>
-                <div className="text-xs text-gray-500 dark:text-gray-300 mb-3">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                   Subido: {new Date(material.uploadedAt).toLocaleDateString('es-ES')}
                 </div>
                 <div className="flex space-x-2">
                   <a
                     href={material.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    download={material.nombre}
                     className="flex-1 bg-indigo-600 text-white text-center py-2 rounded-lg hover:bg-indigo-700 text-sm"
                   >
-                    Ver
+                    Descargar
                   </a>
                   <button
                     onClick={() => handleDelete(material.id)}
