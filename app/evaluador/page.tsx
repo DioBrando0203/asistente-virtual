@@ -4,15 +4,23 @@ import { useState } from 'react';
 import ModelSelector from '@/components/ui/ModelSelector';
 import { AIModel, EvaluacionConfig } from '@/types';
 
+type ResultadoEvaluacion = {
+  score: number;
+  grade?: string;
+  feedback: string;
+  strengths: string[];
+  improvements: string[];
+};
+
 export default function EvaluadorPage() {
   const [config, setConfig] = useState<EvaluacionConfig>({
     temaCurso: '',
     pregunta: '',
     respuestaEstudiante: '',
-    modelo: 'gemini',
+    //modelo: 'gemini',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [resultado, setResultado] = useState<any>(null);
+  const [resultado, setResultado] = useState<ResultadoEvaluacion | null>(null);
 
   const handleEvaluar = async () => {
     if (!config.temaCurso.trim() || !config.pregunta.trim() || !config.respuestaEstudiante.trim()) {
@@ -22,7 +30,7 @@ export default function EvaluadorPage() {
 
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
       const response = await fetch(`${apiUrl}/evaluador/evaluar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,14 +38,28 @@ export default function EvaluadorPage() {
       });
 
       const data = await response.json();
-      if (data.success) {
-        setResultado(data.data);
-      } else {
-        alert('Error: ' + data.error);
+
+      if (data.success === false) {
+        throw new Error(data.error || data.message || 'No se pudo evaluar la respuesta');
       }
+
+      const evaluation = data.evaluation ?? data.data ?? data;
+
+      if (!evaluation) {
+        throw new Error('Respuesta del servidor incompleta');
+      }
+
+      setResultado({
+        score: evaluation.score ?? evaluation.calificacion ?? 0,
+        grade: evaluation.grade ?? evaluation.nivel ?? '',
+        feedback: evaluation.feedback ?? evaluation.retroalimentacion ?? '',
+        strengths: evaluation.strengths ?? evaluation.puntosPositivos ?? [],
+        improvements: evaluation.improvements ?? evaluation.puntosAMejorar ?? [],
+      });
     } catch (error) {
       console.error(error);
-      alert('Error al evaluar respuesta');
+      const message = error instanceof Error ? error.message : 'Error al evaluar respuesta';
+      alert(message);
     } finally {
       setIsLoading(false);
     }
@@ -98,11 +120,11 @@ export default function EvaluadorPage() {
             />
           </div>
 
-          {/* Selector de Modelo */}
+          {/* Selector de Modelo 
           <ModelSelector
             selected={config.modelo}
             onChange={(modelo: AIModel) => setConfig({ ...config, modelo })}
-          />
+          />*/}
 
           {/* Botón Evaluar */}
           <button
@@ -120,8 +142,15 @@ export default function EvaluadorPage() {
         <div className="bg-white rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Evaluación Completa</h2>
-            <div className={`text-4xl font-bold px-6 py-3 rounded-lg ${getCalificacionColor(resultado.calificacion)}`}>
-              {resultado.calificacion}/100
+            <div className="flex items-center space-x-3">
+              {resultado.grade ? (
+                <span className="text-lg font-semibold text-gray-700 bg-gray-100 px-4 py-2 rounded-lg">
+                  {resultado.grade}
+                </span>
+              ) : null}
+              <div className={`text-4xl font-bold px-6 py-3 rounded-lg ${getCalificacionColor(resultado.score)}`}>
+                {resultado.score}/100
+              </div>
             </div>
           </div>
 
@@ -129,7 +158,7 @@ export default function EvaluadorPage() {
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Retroalimentación General</h3>
             <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
-              {resultado.retroalimentacion}
+              {resultado.feedback}
             </p>
           </div>
 
@@ -140,7 +169,7 @@ export default function EvaluadorPage() {
                 <span className="mr-2">✅</span> Puntos Positivos
               </h3>
               <ul className="space-y-2">
-                {resultado.puntosPositivos?.map((punto: string, index: number) => (
+                {resultado.strengths?.map((punto: string, index: number) => (
                   <li key={index} className="bg-green-50 p-3 rounded-lg text-gray-800 text-sm">
                     • {punto}
                   </li>
@@ -154,7 +183,7 @@ export default function EvaluadorPage() {
                 <span className="mr-2">💡</span> Puntos a Mejorar
               </h3>
               <ul className="space-y-2">
-                {resultado.puntosAMejorar?.map((punto: string, index: number) => (
+                {resultado.improvements?.map((punto: string, index: number) => (
                   <li key={index} className="bg-orange-50 p-3 rounded-lg text-gray-800 text-sm">
                     • {punto}
                   </li>
@@ -169,16 +198,16 @@ export default function EvaluadorPage() {
               onClick={() => {
                 const texto = `
 Evaluación - ${config.temaCurso}
-Calificación: ${resultado.calificacion}/100
+Calificación: ${resultado.score}/100${resultado.grade ? ` (${resultado.grade})` : ''}
 
 Retroalimentación:
-${resultado.retroalimentacion}
+${resultado.feedback}
 
 Puntos Positivos:
-${resultado.puntosPositivos?.map((p: string) => `• ${p}`).join('\n')}
+${resultado.strengths?.map((p: string) => `• ${p}`).join('\n')}
 
 Puntos a Mejorar:
-${resultado.puntosAMejorar?.map((p: string) => `• ${p}`).join('\n')}
+${resultado.improvements?.map((p: string) => `• ${p}`).join('\n')}
                 `.trim();
                 navigator.clipboard.writeText(texto);
                 alert('Evaluación copiada al portapapeles');
@@ -196,7 +225,9 @@ ${resultado.puntosAMejorar?.map((p: string) => `• ${p}`).join('\n')}
             <button
               onClick={() => {
                 setResultado(null);
-                setConfig({ temaCurso: '', pregunta: '', respuestaEstudiante: '', modelo: 'gemini' });
+                setConfig({ temaCurso: '', pregunta: '', respuestaEstudiante: ''
+                //  , modelo: 'gemini' 
+                });
               }}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
             >

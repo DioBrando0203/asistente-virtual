@@ -28,7 +28,7 @@ export interface Pregunta {
 export interface ResumenConfig {
   tema: string;
   extensionParrafos: number;
-  modelo: AIModel;
+  //modelo: AIModel;
   formato?: 'simple' | 'detallado' | 'bullet-points';
 }
 
@@ -44,7 +44,7 @@ export interface EvaluacionConfig {
   temaCurso: string;
   pregunta: string;
   respuestaEstudiante: string;
-  modelo: AIModel;
+  //modelo: AIModel;
 }
 
 export interface Evaluacion {

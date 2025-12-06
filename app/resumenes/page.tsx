@@ -4,15 +4,21 @@ import { useState } from 'react';
 import ModelSelector from '@/components/ui/ModelSelector';
 import { AIModel, ResumenConfig } from '@/types';
 
+type ResultadoResumen = {
+  topic: string;
+  format?: string;
+  paragraphs: string[];
+};
+
 export default function ResumenesPage() {
   const [config, setConfig] = useState<ResumenConfig>({
     tema: '',
     extensionParrafos: 3,
     formato: 'simple',
-    modelo: 'gemini',
+    //modelo: 'gemini',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [resultado, setResultado] = useState<any>(null);
+  const [resultado, setResultado] = useState<ResultadoResumen | null>(null);
 
   const handleGenerar = async () => {
     if (!config.tema.trim()) {
@@ -22,7 +28,7 @@ export default function ResumenesPage() {
 
     setIsLoading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
       const response = await fetch(`${apiUrl}/resumenes/generar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -30,14 +36,26 @@ export default function ResumenesPage() {
       });
 
       const data = await response.json();
-      if (data.success) {
-        setResultado(data.data);
-      } else {
-        alert('Error: ' + data.error);
+
+      if (data.success === false) {
+        throw new Error(data.error || data.message || 'No se pudo generar el resumen');
       }
+
+      const summary = data.summary ?? data.data ?? data;
+
+      if (!summary) {
+        throw new Error('Respuesta del servidor incompleta');
+      }
+
+      setResultado({
+        topic: summary.topic ?? summary.tema ?? config.tema,
+        format: summary.format ?? summary.formato ?? config.formato,
+        paragraphs: summary.paragraphs ?? (summary.contenido ? [summary.contenido] : []),
+      });
     } catch (error) {
       console.error(error);
-      alert('Error al generar resumen');
+      const message = error instanceof Error ? error.message : 'Error al generar resumen';
+      alert(message);
     } finally {
       setIsLoading(false);
     }
@@ -109,11 +127,11 @@ export default function ResumenesPage() {
             </div>
           </div>
 
-          {/* Selector de Modelo */}
+          {/* Selector de Modelo 
           <ModelSelector
             selected={config.modelo}
             onChange={(modelo: AIModel) => setConfig({ ...config, modelo })}
-          />
+          />*/}
 
           {/* Botón Generar */}
           <button
@@ -132,18 +150,24 @@ export default function ResumenesPage() {
           <div className="flex justify-between items-start mb-4">
             <h2 className="text-2xl font-bold text-gray-900">Resumen Generado</h2>
             <span className="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
-              {resultado.parrafos} párrafos
+              {resultado.paragraphs.length} párrafos
             </span>
           </div>
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">{resultado.tema}</h3>
+          <h3 className="text-xl font-semibold text-gray-800 mb-4">{resultado.topic}</h3>
           <div className="prose max-w-none">
-            <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-              {resultado.contenido}
+            <div className="text-gray-700 leading-relaxed space-y-3">
+              {resultado.paragraphs.length > 0 ? (
+                resultado.paragraphs.map((paragraph, index) => (
+                  <p key={index}>{paragraph}</p>
+                ))
+              ) : (
+                <p>No se recibieron párrafos en la respuesta.</p>
+              )}
             </div>
           </div>
           <div className="mt-6 flex space-x-3">
             <button
-              onClick={() => navigator.clipboard.writeText(resultado.contenido)}
+              onClick={() => navigator.clipboard.writeText(resultado.paragraphs.join('\n\n'))}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
             >
               📋 Copiar

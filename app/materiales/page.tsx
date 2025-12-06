@@ -11,7 +11,7 @@ export default function MaterialesPage() {
 
   const fetchMateriales = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
       const url = filtro ? `${apiUrl}/materiales?curso=${filtro}` : `${apiUrl}/materiales`;
       const response = await fetch(url);
       const data = await response.json();
