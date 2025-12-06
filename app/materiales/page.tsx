@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Material } from '@/types';
 import { extractTextFromFile } from '@/utils/fileTextExtractor';
 
@@ -10,28 +10,10 @@ export default function MaterialesPage() {
   const [filtro, setFiltro] = useState('');
   const [extractedPreview, setExtractedPreview] = useState('');
 
-  const fetchMateriales = async () => {
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
-      const url = filtro ? `${apiUrl}/materiales?curso=${filtro}` : `${apiUrl}/materiales`;
-      const response = await fetch(url);
-      const data = await response.json();
-      if (data.success) {
-        setMateriales(data.data);
-      }
-    } catch (error) {
-      console.error('Error al cargar materiales:', error);
-    }
-  };
-
-  // TEMPORAL: Comentado para probar sin backend
-  // useEffect(() => {
-  //   fetchMateriales();
-  // }, [filtro]);
-
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const formElement = e.currentTarget;
+    const formData = new FormData(formElement);
     const file = formData.get('file') as File;
 
     if (!file) {
@@ -41,37 +23,39 @@ export default function MaterialesPage() {
 
     setIsUploading(true);
     try {
-      // Intentar extraer texto del archivo (PDF, DOCX, TXT)
-      try {
-        const extractedText = await extractTextFromFile(file);
-        formData.append('extractedText', extractedText);
-        setExtractedPreview(extractedText);
-        console.log('Texto extraído exitosamente:', extractedText.substring(0, 100) + '...');
-      } catch (extractError) {
-        console.warn('No se pudo extraer texto del archivo:', extractError);
-        setExtractedPreview('');
-        // Continuar sin texto extraído (para imágenes u otros archivos)
+      // Extraer texto del archivo (PDF, DOCX, TXT). Si falla, no guardamos nada.
+      const extractedText = await extractTextFromFile(file);
+      const trimmedText = extractedText.trim();
+
+      if (!trimmedText) {
+        alert('No se pudo extraer texto del archivo.');
+        return;
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+      const baseName = file.name.replace(/\.[^/.]+$/, '') || 'material';
+      const textBlob = new Blob([trimmedText], { type: 'text/plain' });
+      setExtractedPreview(trimmedText);
+      formData.append('extractedText', trimmedText);
 
-      const response = await fetch(`${apiUrl}/materiales/subir`, {
-        method: 'POST',
-        body: formData,
-      });
+      // Guardamos solo el texto extraído en un .txt (modo sin backend).
+      const nuevoMaterial: Material = {
+        id: `local-${Date.now()}`,
+        nombre: `${baseName}.txt`,
+        tipo: 'text',
+        url: URL.createObjectURL(textBlob),
+        tamano: textBlob.size,
+        curso: filtro || 'Sin curso',
+        uploadedAt: new Date(),
+      };
 
-      const data = await response.json();
-      if (data.success) {
-        alert('Material subido exitosamente');
-        fetchMateriales();
-        e.currentTarget.reset();
-        setExtractedPreview('');
-      } else {
-        alert('Error: ' + data.error);
-      }
+      setMateriales((prev) => [nuevoMaterial, ...prev]);
+      alert('Material guardado localmente (sin backend configurado)');
+      formElement.reset();
+      setExtractedPreview('');
     } catch (error) {
       console.error(error);
-      alert('Error al subir material');
+      const message = error instanceof Error ? error.message : 'Error al subir material';
+      alert(message);
     } finally {
       setIsUploading(false);
     }
@@ -81,18 +65,8 @@ export default function MaterialesPage() {
     if (!confirm('¿Estás seguro de eliminar este material?')) return;
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-      const response = await fetch(`${apiUrl}/materiales/${id}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        alert('Material eliminado');
-        fetchMateriales();
-      } else {
-        alert('Error: ' + data.error);
-      }
+      setMateriales((prev) => prev.filter((mat) => mat.id !== id));
+      alert('Material eliminado (modo sin backend)');
     } catch (error) {
       console.error(error);
       alert('Error al eliminar material');
@@ -104,6 +78,7 @@ export default function MaterialesPage() {
       case 'pdf': return 'PDF';
       case 'image': return 'IMG';
       case 'word': return 'DOC';
+      case 'text': return 'TXT';
       default: return 'FILE';
     }
   };

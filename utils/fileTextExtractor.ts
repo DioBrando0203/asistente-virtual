@@ -6,13 +6,19 @@ export async function extractTextFromPDF(file: File): Promise<string> {
   try {
     const pdfjsLib = await import('pdfjs-dist');
 
-    // Configurar worker de PDF.js
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // Configurar worker local servido desde /public para evitar cdnjs
+    const workerSrc =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/pdf.worker.min.mjs`
+        : '/pdf.worker.min.mjs';
+    pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+    pdfjsLib.GlobalWorkerOptions.disableWorker = false;
 
     const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = '';
 
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let fullText = '';
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
       const textContent = await page.getTextContent();

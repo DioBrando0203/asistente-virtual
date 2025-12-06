@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
+/* Usa la clase .dark para el modo oscuro (igual que en chatbot) */
+@custom-variant dark (&:is(.dark *));
+
 :root {
   color-scheme: light;
-  --background: #f3f4f6;
-  --foreground: #111827;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 :root.light {
   color-scheme: light;
-  --background: #f3f4f6;
-  --foreground: #111827;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 :root.dark {
@@ -34,10 +37,10 @@ body {
 }
 
 .surface-border {
-  border: 1px solid rgba(0, 0, 0, 0.20);
+  border: 1px solid #e5e7eb; /* gris claro del tema de chatbot */
   transition: border-color 150ms ease;
 }
 
 :root.dark .surface-border {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: #374151; /* gris-700 para modo oscuro */
 }
