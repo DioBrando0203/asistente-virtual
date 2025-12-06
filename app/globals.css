@@ -2,14 +2,14 @@
 
 :root {
   color-scheme: light;
-  --background: #f9fafb;
-  --foreground: #0f172a;
+  --background: #f3f4f6;
+  --foreground: #111827;
 }
 
 :root.light {
   color-scheme: light;
-  --background: #f9fafb;
-  --foreground: #0f172a;
+  --background: #f3f4f6;
+  --foreground: #111827;
 }
 
 :root.dark {
@@ -34,7 +34,7 @@ body {
 }
 
 .surface-border {
-  border: 1px solid rgba(0, 0, 0, 0.16);
+  border: 1px solid rgba(0, 0, 0, 0.20);
   transition: border-color 150ms ease;
 }
 

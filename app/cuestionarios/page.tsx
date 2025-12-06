@@ -67,41 +67,41 @@ export default function CuestionariosPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Generador de Cuestionarios</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Generador de Cuestionarios</h1>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
         <div className="space-y-4">
           {/* Curso */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Curso</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Curso</label>
             <input
               type="text"
               value={config.curso}
               onChange={(e) => setConfig({ ...config, curso: e.target.value })}
               placeholder="Ej: Álgebra lineal, Biología general, Literatura"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
 
           {/* Tema */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tema del curso</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tema del curso</label>
             <input
               type="text"
               value={config.tema}
               onChange={(e) => setConfig({ ...config, tema: e.target.value })}
               placeholder="Ej: Vectores y matrices, Células, Realismo mágico"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
 
           {/* Tipo de Preguntas */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de Preguntas</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tipo de Preguntas</label>
             <select
               value={config.tipoPreguntas}
               onChange={(e) => setConfig({ ...config, tipoPreguntas: e.target.value as QuizConfig["tipoPreguntas"] })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white text-gray-900"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               <option value="multiple">Opción múltiple</option>
               <option value="verdadero-falso">Verdadero/Falso</option>
@@ -112,7 +112,7 @@ export default function CuestionariosPage() {
 
           {/* Número de Preguntas */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Número de Preguntas (máximo 15): {config.numeroPreguntas}
             </label>
             <input
@@ -144,25 +144,25 @@ export default function CuestionariosPage() {
 
       {/* Resultado */}
       {resultado && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Cuestionario Generado</h2>
+        <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Cuestionario Generado</h2>
           <div className="space-y-4">
             {(resultado.questions || resultado.preguntas)?.map((pregunta: any, index: number) => (
-              <div key={index} className="border-b pb-4">
-                <p className="font-semibold text-gray-900 mb-2">
+              <div key={index} className="border-b border-black/10 dark:border-white/10 pb-4">
+                <p className="font-semibold text-gray-900 dark:text-white mb-2">
                   {index + 1}. {pregunta.question || pregunta.pregunta}
                 </p>
                 {pregunta.options && pregunta.options.length > 0 && (
                   <ul className="ml-6 space-y-1">
                     {pregunta.options.map((opcion: string, i: number) => (
-                      <li key={i} className="text-gray-700">
+                      <li key={i} className="text-gray-700 dark:text-gray-300">
                         {String.fromCharCode(65 + i)}) {opcion}
                       </li>
                     ))}
                   </ul>
                 )}
                 {pregunta.answer && (
-                  <p className="text-sm text-gray-600 mt-2">Respuesta: {pregunta.answer}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Respuesta: {pregunta.answer}</p>
                 )}
               </div>
             ))}
@@ -171,7 +171,7 @@ export default function CuestionariosPage() {
             onClick={() => {
               /* Aquí iría la lógica de descarga */
             }}
-            className="mt-6 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700"
+            className="mt-6 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
           >
             Descargar PDF
           </button>

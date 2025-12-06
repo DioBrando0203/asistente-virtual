@@ -116,28 +116,28 @@ export default function MaterialesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Gestión de Materiales</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Gestión de Materiales</h1>
 
       {/* Formulario de Subida */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Subir Nuevo Material</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Subir Nuevo Material</h2>
         <form onSubmit={handleUpload} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Seleccionar Archivo
             </label>
             <input
               type="file"
               name="file"
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-              className="w-full px-4 py-2 border border-black/25 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800 bg-white dark:bg-gray-800 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
               required
             />
           </div>
           <button
             type="submit"
             disabled={isUploading}
-            className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isUploading ? 'Subiendo...' : 'Subir Material'}
           </button>
@@ -146,20 +146,20 @@ export default function MaterialesPage() {
 
       {/* Preview de texto extraído - TEMPORAL PARA PRUEBAS */}
       {extractedPreview && (
-        <div className="bg-green-50 border-2 border-green-500 rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-green-50 dark:bg-green-900/30 border-2 border-green-500 dark:border-green-400 rounded-lg shadow-md p-6 mb-6">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-xl font-semibold text-green-900">Texto Extraído (Preview)</h2>
             <button
               onClick={() => setExtractedPreview('')}
-              className="text-green-700 hover:text-green-900 font-semibold"
+              className="text-green-700 dark:text-green-200 hover:text-green-900 font-semibold"
             >
               Cerrar
             </button>
           </div>
-          <div className="bg-white p-4 rounded border border-green-300 max-h-96 overflow-y-auto">
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">{extractedPreview}</p>
+          <div className="bg-white dark:bg-gray-800 p-4 rounded border border-green-300 dark:border-green-500/60 max-h-96 overflow-y-auto">
+            <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{extractedPreview}</p>
           </div>
-          <p className="text-sm text-green-700 mt-2">
+          <p className="text-sm text-green-700 dark:text-green-200 mt-2">
             Total: {extractedPreview.length} caracteres
           </p>
         </div>
@@ -168,7 +168,7 @@ export default function MaterialesPage() {
       {/* Filtro */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-4 mb-6">
         <div className="flex items-center space-x-4">
-          <label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Filtrar por curso:
           </label>
           <input
@@ -176,12 +176,12 @@ export default function MaterialesPage() {
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
             placeholder="Escribe el nombre del curso..."
-            className="flex-1 px-4 py-2 border border-black/25 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
+            className="flex-1 px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800 bg-white dark:bg-gray-800"
           />
           {filtro && (
             <button
               onClick={() => setFiltro('')}
-              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
             >
               Limpiar
             </button>
@@ -191,12 +191,12 @@ export default function MaterialesPage() {
 
       {/* Lista de Materiales */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
           Materiales Subidos ({materiales.length})
         </h2>
 
         {materiales.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <p className="text-lg">No hay materiales subidos aún</p>
             <p className="text-sm">Sube tu primer archivo usando el formulario arriba</p>
           </div>
@@ -208,20 +208,20 @@ export default function MaterialesPage() {
                 className="surface-border rounded-lg p-4 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className="bg-gray-100 px-3 py-1 rounded text-sm font-semibold text-gray-700">
+                  <div className="bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded text-sm font-semibold text-gray-700 dark:text-gray-100">
                     {getFileIcon(material.tipo)}
                   </div>
-                  <span className="bg-orange-100 text-orange-800 text-xs font-semibold px-2 py-1 rounded">
+                  <span className="bg-indigo-100 dark:bg-indigo-900/40 text-indigo-800 dark:text-indigo-200 text-xs font-semibold px-2 py-1 rounded">
                     {material.curso}
                   </span>
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1 truncate" title={material.nombre}>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate" title={material.nombre}>
                   {material.nombre}
                 </h3>
-                <p className="text-sm text-gray-600 mb-3">
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
                   {formatFileSize(material.tamano)} • {material.tipo.toUpperCase()}
                 </p>
-                <div className="text-xs text-gray-500 mb-3">
+                <div className="text-xs text-gray-500 dark:text-gray-300 mb-3">
                   Subido: {new Date(material.uploadedAt).toLocaleDateString('es-ES')}
                 </div>
                 <div className="flex space-x-2">
@@ -229,7 +229,7 @@ export default function MaterialesPage() {
                     href={material.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 bg-blue-600 text-white text-center py-2 rounded-lg hover:bg-blue-700 text-sm"
+                    className="flex-1 bg-indigo-600 text-white text-center py-2 rounded-lg hover:bg-indigo-700 text-sm"
                   >
                     Ver
                   </a>

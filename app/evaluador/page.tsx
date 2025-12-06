@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import ModelSelector from '@/components/ui/ModelSelector';
@@ -66,21 +66,20 @@ export default function EvaluadorPage() {
   };
 
   const getCalificacionColor = (calificacion: number) => {
-    if (calificacion >= 90) return 'text-green-600 bg-green-50';
-    if (calificacion >= 70) return 'text-blue-600 bg-blue-50';
-    if (calificacion >= 50) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (calificacion >= 90) return 'text-green-700 bg-green-100 dark:text-green-200 dark:bg-green-900/30';
+    if (calificacion >= 70) return 'text-indigo-700 bg-indigo-100 dark:text-indigo-200 dark:bg-indigo-900/30';
+    if (calificacion >= 50) return 'text-yellow-700 bg-yellow-100 dark:text-yellow-200 dark:bg-yellow-900/30';
+    return 'text-red-700 bg-red-100 dark:text-red-200 dark:bg-red-900/30';
   };
 
   return (
     <div className="max-w-4xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Evaluador de Respuestas</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Evaluador de Respuestas</h1>
 
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6 text-gray-900 dark:text-white">
         <div className="space-y-4">
-          {/* Tema del Curso */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tema del Curso
             </label>
             <input
@@ -88,13 +87,12 @@ export default function EvaluadorPage() {
               value={config.temaCurso}
               onChange={(e) => setConfig({ ...config, temaCurso: e.target.value })}
               placeholder="Ej: Matemáticas - Álgebra Lineal"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
 
-          {/* Pregunta */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Pregunta del Examen
             </label>
             <textarea
@@ -102,13 +100,12 @@ export default function EvaluadorPage() {
               onChange={(e) => setConfig({ ...config, pregunta: e.target.value })}
               placeholder="Escribe la pregunta que se le hizo al estudiante..."
               rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900 resize-none"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
             />
           </div>
 
-          {/* Respuesta del Estudiante */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Respuesta del Estudiante
             </label>
             <textarea
@@ -116,7 +113,7 @@ export default function EvaluadorPage() {
               onChange={(e) => setConfig({ ...config, respuestaEstudiante: e.target.value })}
               placeholder="Pega aquí la respuesta del estudiante que quieres evaluar..."
               rows={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900 resize-none"
+              className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white resize-none"
             />
           </div>
 
@@ -126,25 +123,23 @@ export default function EvaluadorPage() {
             onChange={(modelo: AIModel) => setConfig({ ...config, modelo })}
           />*/}
 
-          {/* Botón Evaluar */}
           <button
             onClick={handleEvaluar}
             disabled={isLoading}
-            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Evaluando...' : 'Evaluar Respuesta'}
           </button>
         </div>
       </div>
 
-      {/* Resultado */}
       {resultado && (
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-900">Evaluación Completa</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Evaluación Completa</h2>
             <div className="flex items-center space-x-3">
               {resultado.grade ? (
-                <span className="text-lg font-semibold text-gray-700 bg-gray-100 px-4 py-2 rounded-lg">
+                <span className="text-lg font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg">
                   {resultado.grade}
                 </span>
               ) : null}
@@ -154,37 +149,30 @@ export default function EvaluadorPage() {
             </div>
           </div>
 
-          {/* Retroalimentación General */}
           <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Retroalimentación General</h3>
-            <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Retroalimentación General</h3>
+            <p className="text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
               {resultado.feedback}
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Puntos Positivos */}
             <div>
-              <h3 className="text-lg font-semibold text-green-700 mb-3 flex items-center">
-                <span className="mr-2">✅</span> Puntos Positivos
-              </h3>
+              <h3 className="text-lg font-semibold text-indigo-700 dark:text-indigo-300 mb-3">Puntos Positivos</h3>
               <ul className="space-y-2">
                 {resultado.strengths?.map((punto: string, index: number) => (
-                  <li key={index} className="bg-green-50 p-3 rounded-lg text-gray-800 text-sm">
+                  <li key={index} className="bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded-lg text-gray-800 dark:text-gray-200 text-sm">
                     • {punto}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Puntos a Mejorar */}
             <div>
-              <h3 className="text-lg font-semibold text-orange-700 mb-3 flex items-center">
-                <span className="mr-2">💡</span> Puntos a Mejorar
-              </h3>
+              <h3 className="text-lg font-semibold text-orange-700 dark:text-orange-300 mb-3">Puntos a Mejorar</h3>
               <ul className="space-y-2">
                 {resultado.improvements?.map((punto: string, index: number) => (
-                  <li key={index} className="bg-orange-50 p-3 rounded-lg text-gray-800 text-sm">
+                  <li key={index} className="bg-orange-50 dark:bg-orange-900/30 p-3 rounded-lg text-gray-800 dark:text-gray-200 text-sm">
                     • {punto}
                   </li>
                 ))}
@@ -192,8 +180,7 @@ export default function EvaluadorPage() {
             </div>
           </div>
 
-          {/* Botones de Acción */}
-          <div className="mt-6 flex space-x-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <button
               onClick={() => {
                 const texto = `
@@ -212,15 +199,15 @@ ${resultado.improvements?.map((p: string) => `• ${p}`).join('\n')}
                 navigator.clipboard.writeText(texto);
                 alert('Evaluación copiada al portapapeles');
               }}
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
             >
-              📋 Copiar Evaluación
+              Copiar Evaluación
             </button>
             <button
               onClick={() => {/* Aquí iría la lógica de descarga */}}
-              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700"
+              className="bg-indigo-500 text-white px-6 py-2 rounded-lg hover:bg-indigo-600"
             >
-              📥 Descargar PDF
+              Descargar PDF
             </button>
             <button
               onClick={() => {
@@ -231,7 +218,7 @@ ${resultado.improvements?.map((p: string) => `• ${p}`).join('\n')}
               }}
               className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700"
             >
-              🔄 Nueva Evaluación
+              Nueva Evaluación
             </button>
           </div>
         </div>
