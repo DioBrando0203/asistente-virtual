@@ -119,7 +119,7 @@ export default function MaterialesPage() {
       <h1 className="text-3xl font-bold text-gray-900 mb-6">Gestión de Materiales</h1>
 
       {/* Formulario de Subida */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+      <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Subir Nuevo Material</h2>
         <form onSubmit={handleUpload} className="space-y-4">
           <div>
@@ -130,7 +130,7 @@ export default function MaterialesPage() {
               type="file"
               name="file"
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.txt"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+              className="w-full px-4 py-2 border border-black/25 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
               required
             />
           </div>
@@ -166,7 +166,7 @@ export default function MaterialesPage() {
       )}
 
       {/* Filtro */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-4 mb-6">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium text-gray-700">
             Filtrar por curso:
@@ -176,7 +176,7 @@ export default function MaterialesPage() {
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
             placeholder="Escribe el nombre del curso..."
-            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
+            className="flex-1 px-4 py-2 border border-black/25 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
           />
           {filtro && (
             <button
@@ -190,7 +190,7 @@ export default function MaterialesPage() {
       </div>
 
       {/* Lista de Materiales */}
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">
           Materiales Subidos ({materiales.length})
         </h2>
@@ -205,7 +205,7 @@ export default function MaterialesPage() {
             {materiales.map((material) => (
               <div
                 key={material.id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-lg transition-shadow"
+                className="surface-border rounded-lg p-4 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800"
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="bg-gray-100 px-3 py-1 rounded text-sm font-semibold text-gray-700">
