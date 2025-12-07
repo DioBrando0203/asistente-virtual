@@ -1,8 +1,14 @@
-﻿'use client';
+'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ResumenConfig } from '@/types';
-import { generarPDFResumen } from '@/lib/pdf-generator';
+import dynamic from 'next/dynamic';
+
+// Lazy load del generador de PDF
+const generarPDFResumen = dynamic(
+  () => import('@/lib/pdf-generator').then(mod => ({ default: mod.generarPDFResumen })),
+  { ssr: false }
+);
 
 type ResultadoResumen = {
   topic: string;
@@ -10,62 +16,21 @@ type ResultadoResumen = {
   paragraphs: string[];
 };
 
-export default function ResumenesPage() {
+interface ResumenesClientProps {
+  temasDisponibles: string[];
+}
+
+export default function ResumenesClient({ temasDisponibles }: ResumenesClientProps) {
   const [config, setConfig] = useState<ResumenConfig>({
     tema: '',
-    extensionParrafos: 4, // Medio (3-4 párrafos) por defecto
+    extensionParrafos: 4,
     formato: 'simple',
-    //modelo: 'gemini',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [resultado, setResultado] = useState<ResultadoResumen | null>(null);
-  const [temasDisponibles, setTemasDisponibles] = useState<string[]>([]);
-  const [isLoadingTemas, setIsLoadingTemas] = useState(false);
   const [contenidoMaterial, setContenidoMaterial] = useState<string>('');
   const [isLoadingContenido, setIsLoadingContenido] = useState(false);
 
-  // Cargar lista de archivos del bucket al montar el componente
-  useEffect(() => {
-    const cargarTemas = async () => {
-      setIsLoadingTemas(true);
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
-        const response = await fetch(`${apiUrl}/materiales/list-topics`);
-
-        if (!response.ok) {
-          throw new Error('Error al cargar temas del bucket');
-        }
-
-        const data = await response.json();
-
-        if (data.success) {
-          // El backend puede devolver files como array o como objeto
-          let filesArray: string[] = [];
-
-          if (Array.isArray(data.files)) {
-            filesArray = data.files;
-          } else if (data.files && typeof data.files === 'object') {
-            filesArray = Object.values(data.files);
-          }
-
-          // Remover la extensión .txt de los nombres para mostrar más limpio
-          const temas = filesArray.map((file: string) => file.replace(/\.txt$/, ''));
-          setTemasDisponibles(temas);
-        } else {
-          console.error('Formato de respuesta inesperado:', data);
-        }
-      } catch (error) {
-        console.error('Error al cargar temas:', error);
-        alert('No se pudieron cargar los temas disponibles del bucket');
-      } finally {
-        setIsLoadingTemas(false);
-      }
-    };
-
-    cargarTemas();
-  }, []);
-
-  // Cargar contenido del archivo cuando se selecciona un tema
   const cargarContenidoTema = async (nombreArchivo: string): Promise<string> => {
     if (!nombreArchivo) {
       setContenidoMaterial('');
@@ -91,10 +56,8 @@ export default function ResumenesPage() {
 
         if (archivo && archivo.content) {
           setContenidoMaterial(archivo.content);
-          console.log(`Contenido cargado: ${archivo.content.length} caracteres`);
           return archivo.content;
         } else {
-          console.warn(`No se encontró contenido para: ${archivoConExtension}`);
           setContenidoMaterial('');
           return '';
         }
@@ -109,11 +72,9 @@ export default function ResumenesPage() {
     }
   };
 
-  // Manejar cambio de tema
   const handleTemaChange = (tema: string) => {
     setConfig({ ...config, tema });
-    // Ya no cargamos el contenido aquí
-    setContenidoMaterial(''); // Limpiar el contenido previo
+    setContenidoMaterial('');
   };
 
   const handleGenerar = async () => {
@@ -124,12 +85,10 @@ export default function ResumenesPage() {
 
     setIsLoading(true);
     try {
-      // Cargar el contenido del material antes de generar
       const contenido = await cargarContenidoTema(config.tema);
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
 
-      // Agregar contenido del material al payload
       const payload = {
         ...config,
         contenidoMaterial: contenido || ''
@@ -167,6 +126,12 @@ export default function ResumenesPage() {
     }
   };
 
+  const handleDescargarPDF = async () => {
+    if (!resultado) return;
+    const { generarPDFResumen } = await import('@/lib/pdf-generator');
+    generarPDFResumen(resultado);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4">
       <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Generador de Resúmenes</h1>
@@ -176,7 +141,6 @@ export default function ResumenesPage() {
           Genera resúmenes estructurados y claros de los temas del curso CTA
         </p>
         <div className="space-y-4">
-          {/* Tema del Curso */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Tema del Curso
@@ -185,10 +149,10 @@ export default function ResumenesPage() {
               value={config.tema}
               onChange={(e) => handleTemaChange(e.target.value)}
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              disabled={isLoadingTemas || isLoadingContenido}
+              disabled={isLoadingContenido}
             >
               <option value="">
-                {isLoadingTemas ? "Cargando temas..." : isLoadingContenido ? "Cargando contenido..." : "Selecciona un tema"}
+                {isLoadingContenido ? "Cargando contenido..." : "Selecciona un tema"}
               </option>
               {temasDisponibles.map((tema) => (
                 <option key={tema} value={tema}>
@@ -196,7 +160,7 @@ export default function ResumenesPage() {
                 </option>
               ))}
             </select>
-            {temasDisponibles.length === 0 && !isLoadingTemas && (
+            {temasDisponibles.length === 0 && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                 No hay materiales disponibles. Sube archivos en la sección de Gestión de Materiales.
               </p>
@@ -208,7 +172,6 @@ export default function ResumenesPage() {
             )}
           </div>
 
-          {/* Extensión del Resumen */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Extensión del Resumen
@@ -262,7 +225,7 @@ export default function ResumenesPage() {
               Copiar
             </button>
             <button
-              onClick={() => generarPDFResumen(resultado)}
+              onClick={handleDescargarPDF}
               className="bg-indigo-500 text-white px-6 py-2 rounded-lg hover:bg-indigo-600"
             >
               Descargar PDF

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { QuizConfig } from "@/types";
+import { generarPDFCuestionario } from "@/lib/pdf-generator";
 
 export default function CuestionariosPage() {
   const [config, setConfig] = useState<QuizConfig>({
@@ -60,10 +61,10 @@ export default function CuestionariosPage() {
   }, []);
 
   // Cargar contenido del archivo cuando se selecciona un tema
-  const cargarContenidoTema = async (nombreArchivo: string) => {
+  const cargarContenidoTema = async (nombreArchivo: string): Promise<string> => {
     if (!nombreArchivo) {
       setContenidoMaterial("");
-      return;
+      return "";
     }
 
     setIsLoadingContenido(true);
@@ -89,14 +90,18 @@ export default function CuestionariosPage() {
         if (archivo && archivo.content) {
           setContenidoMaterial(archivo.content);
           console.log(`Contenido cargado: ${archivo.content.length} caracteres`);
+          return archivo.content;
         } else {
           console.warn(`No se encontró contenido para: ${archivoConExtension}`);
           setContenidoMaterial("");
+          return "";
         }
       }
+      return "";
     } catch (error) {
       console.error('Error al cargar contenido:', error);
       setContenidoMaterial("");
+      return "";
     } finally {
       setIsLoadingContenido(false);
     }
@@ -105,7 +110,8 @@ export default function CuestionariosPage() {
   // Manejar cambio de tema
   const handleTemaChange = (tema: string) => {
     setConfig({ ...config, tema });
-    cargarContenidoTema(tema);
+    // Ya no cargamos el contenido aquí
+    setContenidoMaterial(""); // Limpiar el contenido previo
   };
 
   const handleGenerar = async () => {
@@ -117,13 +123,16 @@ export default function CuestionariosPage() {
     setIsLoading(true);
     setResultado(null);
     try {
+      // Cargar el contenido del material antes de generar
+      const contenido = await cargarContenidoTema(config.tema);
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
 
       // Agregar contenido del material al payload
       const payload = {
         ...config,
         cantidad: config.numeroPreguntas,
-        contenidoMaterial: contenidoMaterial || undefined // Solo enviar si existe
+        contenidoMaterial: contenido || '' // Enviar string vacío si no hay contenido
       };
 
       const response = await fetch(`${apiUrl}/cuestionarios/generar`, {
@@ -243,7 +252,6 @@ export default function CuestionariosPage() {
               <option value={5}>5 preguntas</option>
               <option value={10}>10 preguntas</option>
               <option value={15}>15 preguntas</option>
-              <option value={20}>20 preguntas</option>
             </select>
           </div>
 
@@ -296,9 +304,7 @@ export default function CuestionariosPage() {
             </p>
           )}
           <button
-            onClick={() => {
-              /* Aquí iría la lógica de descarga */
-            }}
+            onClick={() => generarPDFCuestionario({ tema: config.tema, preguntas: resultado.preguntas })}
             className="mt-6 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
           >
             Descargar PDF

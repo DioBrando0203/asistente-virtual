@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { EvaluacionConfig } from '@/types';
+import { generarPDFEvaluacion } from '@/lib/pdf-generator';
 
 type ResultadoEvaluacion = {
   score: number;
@@ -67,10 +68,10 @@ export default function EvaluadorPage() {
   }, []);
 
   // Cargar contenido del archivo cuando se selecciona un tema
-  const cargarContenidoTema = async (nombreArchivo: string) => {
+  const cargarContenidoTema = async (nombreArchivo: string): Promise<string> => {
     if (!nombreArchivo) {
       setContenidoMaterial('');
-      return;
+      return '';
     }
 
     setIsLoadingContenido(true);
@@ -93,14 +94,18 @@ export default function EvaluadorPage() {
         if (archivo && archivo.content) {
           setContenidoMaterial(archivo.content);
           console.log(`Contenido cargado: ${archivo.content.length} caracteres`);
+          return archivo.content;
         } else {
           console.warn(`No se encontró contenido para: ${archivoConExtension}`);
           setContenidoMaterial('');
+          return '';
         }
       }
+      return '';
     } catch (error) {
       console.error('Error al cargar contenido:', error);
       setContenidoMaterial('');
+      return '';
     } finally {
       setIsLoadingContenido(false);
     }
@@ -109,7 +114,8 @@ export default function EvaluadorPage() {
   // Manejar cambio de tema
   const handleTemaChange = (tema: string) => {
     setConfig({ ...config, temaCurso: tema });
-    cargarContenidoTema(tema);
+    // Ya no cargamos el contenido aquí
+    setContenidoMaterial(''); // Limpiar el contenido previo
   };
 
   const handleEvaluar = async () => {
@@ -120,12 +126,15 @@ export default function EvaluadorPage() {
 
     setIsLoading(true);
     try {
+      // Cargar el contenido del material antes de evaluar
+      const contenido = await cargarContenidoTema(config.temaCurso);
+
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
 
       // Agregar contenido del material al payload
       const payload = {
         ...config,
-        contenidoMaterial: contenidoMaterial || undefined
+        contenidoMaterial: contenido || ''
       };
 
       const response = await fetch(`${apiUrl}/evaluador/evaluar`, {
@@ -317,7 +326,7 @@ ${resultado.improvements?.map((p: string) => `• ${p}`).join('\n')}
               Copiar Evaluación
             </button>
             <button
-              onClick={() => {/* Aquí iría la lógica de descarga */}}
+              onClick={() => generarPDFEvaluacion({ ...resultado, temaCurso: config.temaCurso })}
               className="bg-indigo-500 text-white px-6 py-2 rounded-lg hover:bg-indigo-600"
             >
               Descargar PDF
