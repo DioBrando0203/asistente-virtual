@@ -145,7 +145,18 @@ export default function CuestionariosPage() {
       const success = response.ok && (data?.success ?? true);
       const resultadoData = data?.data ?? data;
 
-      if (!success || (!resultadoData?.questions && !resultadoData?.preguntas)) {
+      const preguntasNormalizadas =
+        Array.isArray(resultadoData?.questions)
+          ? resultadoData.questions
+          : Array.isArray(resultadoData?.preguntas)
+            ? resultadoData.preguntas
+            : resultadoData?.preguntas && typeof resultadoData.preguntas === "object"
+              ? Object.values(resultadoData.preguntas)
+              : resultadoData?.questions && typeof resultadoData.questions === "object"
+                ? Object.values(resultadoData.questions)
+                : null;
+
+      if (!success || !preguntasNormalizadas || preguntasNormalizadas.length === 0) {
         const message =
           data?.error ||
           data?.message ||
@@ -155,7 +166,10 @@ export default function CuestionariosPage() {
         throw new Error(message);
       }
 
-      setResultado(resultadoData);
+      setResultado({
+        ...resultadoData,
+        preguntas: preguntasNormalizadas,
+      });
     } catch (error: any) {
       console.error(error);
       alert(`Error: ${error?.message || "No se pudo generar el cuestionario"}`);
@@ -254,27 +268,33 @@ export default function CuestionariosPage() {
       {resultado && (
         <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Cuestionario Generado</h2>
-          <div className="space-y-4">
-            {(resultado.questions || resultado.preguntas)?.map((pregunta: any, index: number) => (
-              <div key={index} className="border-b border-black/10 dark:border-white/10 pb-4">
-                <p className="font-semibold text-gray-900 dark:text-white mb-2">
-                  {index + 1}. {pregunta.question || pregunta.pregunta}
-                </p>
-                {pregunta.options && pregunta.options.length > 0 && (
-                  <ul className="ml-6 space-y-1">
-                    {pregunta.options.map((opcion: string, i: number) => (
-                      <li key={i} className="text-gray-700 dark:text-gray-300">
-                        {String.fromCharCode(65 + i)}) {opcion}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {pregunta.answer && (
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Respuesta: {pregunta.answer}</p>
-                )}
-              </div>
-            ))}
-          </div>
+          {Array.isArray(resultado?.preguntas) && resultado.preguntas.length > 0 ? (
+            <div className="space-y-4">
+              {resultado.preguntas.map((pregunta: any, index: number) => (
+                <div key={index} className="border-b border-black/10 dark:border-white/10 pb-4">
+                  <p className="font-semibold text-gray-900 dark:text-white mb-2">
+                    {index + 1}. {pregunta.question || pregunta.pregunta}
+                  </p>
+                  {pregunta.options && pregunta.options.length > 0 && (
+                    <ul className="ml-6 space-y-1">
+                      {pregunta.options.map((opcion: string, i: number) => (
+                        <li key={i} className="text-gray-700 dark:text-gray-300">
+                          {String.fromCharCode(65 + i)}) {opcion}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {pregunta.answer && (
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Respuesta: {pregunta.answer}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-amber-600 dark:text-amber-400">
+              No se recibieron preguntas validas desde el servicio.
+            </p>
+          )}
           <button
             onClick={() => {
               /* Aquí iría la lógica de descarga */
