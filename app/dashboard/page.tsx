@@ -7,6 +7,8 @@ const sections = [
   { title: 'Resúmenes', href: '/resumenes', desc: 'Resume contenidos largos' },
   { title: 'Evaluador', href: '/evaluador', desc: 'Evalúa respuestas de estudiantes' },
   { title: 'Materiales', href: '/materiales', desc: 'Sube y consulta materiales' },
+  { title: 'Generador de Imágenes', href: '/generador-imagenes', desc: 'Genera imágenes educativas con IA' },
+  { title: 'Generador de Temas', href: '/generador-temas', desc: 'Crea contenido educativo completo' },
 ];
 
 export default function DashboardPage() {

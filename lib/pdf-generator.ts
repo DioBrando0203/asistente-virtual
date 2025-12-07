@@ -24,6 +24,12 @@ interface CuestionarioData {
   }>;
 }
 
+interface TemaData {
+  titulo: string;
+  contenido: string;
+  nivelEducativo: string;
+}
+
 const MARGIN = 20;
 const PAGE_WIDTH = 210; // A4 width in mm
 const MAX_WIDTH = PAGE_WIDTH - (MARGIN * 2);
@@ -264,4 +270,50 @@ export function generarPDFCuestionario(data: CuestionarioData): void {
   }
 
   doc.save(`cuestionario-${data.tema.replace(/\s+/g, '-')}.pdf`);
+}
+
+export function generarPDFTema(data: TemaData): void {
+  const doc = new jsPDF();
+  let yPosition = MARGIN;
+
+  // Título
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  yPosition = addWrappedText(doc, data.titulo, MARGIN, yPosition, MAX_WIDTH, LINE_HEIGHT);
+  yPosition += 10;
+
+  // Nivel Educativo
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'italic');
+  yPosition = addWrappedText(doc, `Nivel: ${data.nivelEducativo}`, MARGIN, yPosition, MAX_WIDTH, LINE_HEIGHT);
+  yPosition += 15;
+
+  // Contenido
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+
+  // Dividir el contenido en párrafos
+  const paragraphs = data.contenido.split('\n').filter(p => p.trim());
+
+  paragraphs.forEach((paragraph) => {
+    yPosition = checkAndAddPage(doc, yPosition, 20);
+    yPosition = addWrappedText(doc, paragraph, MARGIN, yPosition, MAX_WIDTH, LINE_HEIGHT);
+    yPosition += 8;
+  });
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text(
+      `Página ${i} de ${pageCount}`,
+      PAGE_WIDTH / 2,
+      doc.internal.pageSize.height - 10,
+      { align: 'center' }
+    );
+  }
+
+  doc.save(`tema-${data.titulo.replace(/\s+/g, '-')}.pdf`);
 }

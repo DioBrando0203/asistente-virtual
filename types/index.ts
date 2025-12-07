@@ -66,6 +66,34 @@ export interface Material {
   uploadedAt: Date;
 }
 
+export interface ImageGenerationConfig {
+  tema: string;
+  descripcion: string;
+  temaPersonalizado?: string;
+}
+
+export interface ImageGenerationResult {
+  id: string;
+  imageUrl: string;
+  descripcion: string;
+  tema: string;
+  createdAt: Date;
+}
+
+export interface TemaGenerationConfig {
+  titulo: string;
+  descripcion: string;
+  nivelEducativo: string;
+}
+
+export interface TemaGenerationResult {
+  id: string;
+  titulo: string;
+  contenido: string;
+  nivelEducativo: string;
+  createdAt: Date;
+}
+
 export interface APIResponse<T> {
   success: boolean;
   data?: T;
