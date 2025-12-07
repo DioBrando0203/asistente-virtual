@@ -2,13 +2,7 @@
 
 import { useState } from 'react';
 import { ResumenConfig } from '@/types';
-import dynamic from 'next/dynamic';
-
-// Lazy load del generador de PDF
-const generarPDFResumen = dynamic(
-  () => import('@/lib/pdf-generator').then(mod => ({ default: mod.generarPDFResumen })),
-  { ssr: false }
-);
+import { generarPDFResumen } from '@/lib/pdf-generator';
 
 type ResultadoResumen = {
   topic: string;
