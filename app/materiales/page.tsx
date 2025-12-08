@@ -18,7 +18,7 @@ export default function MaterialesPage() {
   const cargarMateriales = async () => {
     setIsLoadingMateriales(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
       const response = await fetch(`${apiUrl}/materiales/list-topics`);
 
       if (!response.ok) {
@@ -87,7 +87,7 @@ export default function MaterialesPage() {
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       // PASO 1: Enviar archivo al backend para extracción de texto
       const extractFormData = new FormData();
@@ -186,12 +186,6 @@ export default function MaterialesPage() {
       case 'text': return 'TXT';
       default: return 'FILE';
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
   return (
@@ -305,9 +299,7 @@ export default function MaterialesPage() {
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-1 truncate" title={material.nombre}>
                   {material.nombre}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                  {formatFileSize(material.tamano)} • {material.tipo.toUpperCase()}
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{material.tipo.toUpperCase()}</p>
                 <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                   Subido: {new Date(material.uploadedAt).toLocaleDateString('es-ES')}
                 </div>
