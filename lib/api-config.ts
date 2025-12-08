@@ -5,7 +5,7 @@
 
 export const API_CONFIG = {
   // URL base del API - cambiar según el entorno
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://136.116.238.134/api',
 
   // Endpoints disponibles
   endpoints: {
