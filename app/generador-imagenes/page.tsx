@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ImageGenerationConfig, ImageGenerationResult } from '@/types';
+import { API_CONFIG, apiFetch, base64ToObjectURL } from '@/lib/api-config';
 
 export default function GeneradorImagenesPage() {
   const [config, setConfig] = useState<ImageGenerationConfig>({
@@ -20,14 +21,7 @@ export default function GeneradorImagenesPage() {
     const cargarTemas = async () => {
       setIsLoadingTemas(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-        const response = await fetch(`${apiUrl}/materiales/list-topics`);
-
-        if (!response.ok) {
-          throw new Error('Error al cargar temas del bucket');
-        }
-
-        const data = await response.json();
+        const data = await apiFetch(API_CONFIG.endpoints.listTopics);
 
         if (data.success) {
           // El backend puede devolver files como array o como objeto
@@ -73,51 +67,36 @@ export default function GeneradorImagenesPage() {
     setIsLoading(true);
     setResultado(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
       const payload = {
         tema: temaFinal,
         descripcion: config.descripcion,
       };
 
-      const response = await fetch(`${apiUrl}/imagenes/generar`, {
+      // Usar el endpoint correcto del backend: /api/images/generate
+      const data = await apiFetch(API_CONFIG.endpoints.generateImage, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const contentType = response.headers.get('content-type') || '';
-      let data: any = null;
-
-      if (contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Error HTTP ${response.status}: ${text || response.statusText}`);
-      }
-
-      const success = response.ok && (data?.success ?? true);
-
-      if (!success) {
-        const message =
-          data?.error ||
-          data?.message ||
-          data?.detail ||
-          response.statusText ||
-          'No se pudo generar la imagen';
+      if (!data.success) {
+        const message = data?.error || data?.message || 'No se pudo generar la imagen';
         throw new Error(message);
       }
 
-      // Construir resultado
-      const imageUrl = data?.data?.imageUrl || data?.imageUrl || '';
+      // El backend devuelve image_base64, convertirlo a URL de objeto
+      const imageBase64 = data.image_base64;
 
-      if (!imageUrl) {
-        throw new Error('No se recibió URL de la imagen');
+      if (!imageBase64) {
+        throw new Error('No se recibió la imagen del servidor');
       }
 
+      // Convertir base64 a URL de objeto para mostrar la imagen
+      const imageUrl = base64ToObjectURL(imageBase64);
+
       setResultado({
-        id: data?.data?.id || `img-${Date.now()}`,
+        id: `img-${Date.now()}`,
         imageUrl: imageUrl,
+        imageBase64: imageBase64, // Guardar también el base64 para descargar
         descripcion: config.descripcion,
         tema: temaFinal,
         createdAt: new Date(),
@@ -130,19 +109,16 @@ export default function GeneradorImagenesPage() {
     }
   };
 
-  const handleDescargar = async () => {
+  const handleDescargar = () => {
     if (!resultado?.imageUrl) return;
 
     try {
-      const response = await fetch(resultado.imageUrl);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      // Si tenemos el base64, usarlo directamente para la descarga
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `imagen-${resultado.tema}-${Date.now()}.png`;
+      a.href = resultado.imageUrl;
+      a.download = `imagen-${resultado.tema.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
     } catch (error) {
       console.error('Error al descargar imagen:', error);

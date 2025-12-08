@@ -2,36 +2,56 @@
 
 import { useState, useEffect } from 'react';
 import { Material } from '@/types';
+import { API_CONFIG, apiFetch } from '@/lib/api-config';
 
 export default function MaterialesPage() {
   const [materiales, setMateriales] = useState<Material[]>([]);
+  const [materialesFiltrados, setMaterialesFiltrados] = useState<Material[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoadingMateriales, setIsLoadingMateriales] = useState(false);
   const [filtro, setFiltro] = useState('');
   const [extractedPreview, setExtractedPreview] = useState('');
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ljxppmeunlfgqhuqxtfz.supabase.co';
+  const supabaseBucket = process.env.NEXT_PUBLIC_SUPABASE_BUCKET || 'Nube2';
+
+  const buildPublicUrl = (objectPath: string) => {
+    const cleanPath = objectPath.replace(/^\/+/, '');
+    return `${supabaseUrl}/storage/v1/object/public/${supabaseBucket}/${cleanPath}`;
+  };
+
   // Cargar materiales existentes del bucket al montar el componente
   useEffect(() => {
     cargarMateriales();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Filtrar materiales dinámicamente mientras el usuario escribe
+  useEffect(() => {
+    if (!filtro.trim()) {
+      setMaterialesFiltrados(materiales);
+    } else {
+      const filtroLower = filtro.toLowerCase();
+      const filtrados = materiales.filter(material =>
+        material.nombre.toLowerCase().includes(filtroLower)
+      );
+      setMaterialesFiltrados(filtrados);
+    }
+  }, [filtro, materiales]);
 
   const cargarMateriales = async () => {
     setIsLoadingMateriales(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-      const response = await fetch(`${apiUrl}/materiales/list-topics`);
-
-      if (!response.ok) {
-        console.error(`Error HTTP ${response.status}:`, await response.text());
-        throw new Error(`Error al cargar materiales del bucket (HTTP ${response.status})`);
-      }
-
-      const data = await response.json();
+      // Cargar todos los archivos sin filtro de path
+      const data = await apiFetch(`${API_CONFIG.endpoints.listTopics}`, {
+        method: 'GET',
+        headers: {}, // no fijar Content-Type en GET
+      });
       console.log('Respuesta de /materiales/list-topics:', data);
 
       if (data.success) {
-        // El backend puede devolver files como array o como objeto (por array_filter preservando keys)
-        let filesArray: string[] = [];
+        // El backend puede devolver files como array o como objeto
+        let filesArray: any[] = [];
 
         if (Array.isArray(data.files)) {
           filesArray = data.files;
@@ -45,15 +65,25 @@ export default function MaterialesPage() {
           setMateriales([]);
         } else {
           // Mapear los archivos del bucket al formato Material
-          const materialesCargados: Material[] = filesArray.map((fileName: string, index: number) => ({
-            id: `supabase-${fileName}-${index}`,
-            nombre: fileName,
-            tipo: 'text',
-            url: `${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ljxppmeunlfgqhuqxtfz.supabase.co'}/storage/v1/object/public/Nube2/${fileName}`,
-            tamano: 0, // No tenemos el tamaño desde la API actual
-            curso: 'CTA', // Podrías extraer esto del path si organizas por carpetas
-            uploadedAt: new Date(),
-          }));
+          const materialesCargados: Material[] = filesArray.map((file: any, index: number) => {
+            const isString = typeof file === 'string';
+            const name = isString ? file : file?.name || `archivo-${index}.txt`;
+            const objectPathRaw = isString ? name : file?.object_path || name;
+            const objectPath = String(objectPathRaw).replace(/^\/+/, '');
+            const publicUrl = isString ? buildPublicUrl(objectPath) : file?.public_url || buildPublicUrl(objectPath);
+            const size = !isString && typeof file?.size === 'number' ? file.size : 0;
+            const updatedAt = !isString && file?.updated_at ? new Date(file.updated_at) : new Date();
+
+            return {
+              id: `supabase-${objectPath}-${index}`,
+              nombre: name,
+              tipo: 'text',
+              url: publicUrl,
+              tamano: size, // API no devuelve size en la lista actual
+              curso: 'CTA',
+              uploadedAt: updatedAt,
+            };
+          });
           setMateriales(materialesCargados);
           console.log(`${materialesCargados.length} materiales cargados del bucket`);
         }
@@ -89,7 +119,7 @@ export default function MaterialesPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-      // PASO 1: Enviar archivo al backend para extracción de texto
+      // PASO 1: Enviar archivo al backend para extracciИn de texto
       const extractFormData = new FormData();
       extractFormData.append('file', file);
 
@@ -152,7 +182,7 @@ export default function MaterialesPage() {
       // PASO 4: Recargar la lista completa de materiales desde Supabase
       await cargarMateriales();
 
-      alert('¡Archivo subido exitosamente a Supabase!');
+      alert('雁Archivo subido exitosamente a Supabase!');
       formElement.reset();
     } catch (error) {
       console.error(error);
@@ -164,14 +194,38 @@ export default function MaterialesPage() {
     }
   };
 
+  const handleDownload = async (material: Material) => {
+    try {
+      // Descargar el archivo desde Supabase
+      const response = await fetch(material.url);
+
+      if (!response.ok) {
+        throw new Error('Error al descargar el archivo');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = material.nombre;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error al descargar:', error);
+      alert('Error al descargar el archivo. Por favor, intenta nuevamente.');
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este material?')) return;
+    if (!confirm('隅Estケs seguro de eliminar este material?')) return;
 
     try {
-      // NOTA: Esta funcionalidad requiere una API de eliminación en el backend
+      // NOTA: Esta funcionalidad requiere una API de eliminaciИn en el backend
       // Por ahora solo ocultamos del estado local
       setMateriales((prev) => prev.filter((mat) => mat.id !== id));
-      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminación en el backend)');
+      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminaciИn en el backend)');
     } catch (error) {
       console.error(error);
       alert('Error al eliminar material');
@@ -190,7 +244,7 @@ export default function MaterialesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Gestión de Materiales</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">GestiИn de Materiales</h1>
 
       {/* Formulario de Subida */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
@@ -208,7 +262,7 @@ export default function MaterialesPage() {
               required
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              El sistema extraerá el texto y lo subirá automáticamente a Supabase
+              El sistema extraerケ el texto y lo subirケ automケticamente a Supabase
             </p>
           </div>
           <button
@@ -242,17 +296,17 @@ export default function MaterialesPage() {
         </div>
       )}
 
-      {/* Filtro */}
+      {/* Filtro Dinámico */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-4 mb-6">
         <div className="flex items-center space-x-4">
           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Filtrar por curso:
+            Buscar por nombre de archivo:
           </label>
           <input
             type="text"
             value={filtro}
             onChange={(e) => setFiltro(e.target.value)}
-            placeholder="Escribe el nombre del curso..."
+            placeholder="Escribe para filtrar..."
             className="flex-1 px-4 py-2 border border-black/20 dark:border-white/25 rounded-lg focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white bg-white dark:bg-gray-800"
           />
           {filtro && (
@@ -264,26 +318,31 @@ export default function MaterialesPage() {
             </button>
           )}
         </div>
+        {filtro && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Mostrando {materialesFiltrados.length} de {materiales.length} archivos
+          </p>
+        )}
       </div>
 
       {/* Lista de Materiales */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Materiales Subidos ({materiales.length})
+          Materiales Subidos ({materialesFiltrados.length})
         </h2>
 
         {isLoadingMateriales ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             <p className="text-lg">Cargando materiales del bucket...</p>
           </div>
-        ) : materiales.length === 0 ? (
+        ) : materialesFiltrados.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <p className="text-lg">No hay materiales subidos aún</p>
-            <p className="text-sm">Sube tu primer archivo usando el formulario arriba</p>
+            <p className="text-lg">{filtro ? 'No se encontraron archivos con ese nombre' : 'No hay materiales subidos aún'}</p>
+            <p className="text-sm">{filtro ? 'Intenta con otro término de búsqueda' : 'Sube tu primer archivo usando el formulario arriba'}</p>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {materiales.map((material) => (
+            {materialesFiltrados.map((material) => (
               <div
                 key={material.id}
                 className="surface-border rounded-lg p-4 hover:shadow-lg transition-shadow bg-white dark:bg-gray-800"
@@ -304,13 +363,12 @@ export default function MaterialesPage() {
                   Subido: {new Date(material.uploadedAt).toLocaleDateString('es-ES')}
                 </div>
                 <div className="flex space-x-2">
-                  <a
-                    href={material.url}
-                    download={material.nombre}
+                  <button
+                    onClick={() => handleDownload(material)}
                     className="flex-1 bg-indigo-600 text-white text-center py-2 rounded-lg hover:bg-indigo-700 text-sm"
                   >
                     Descargar
-                  </a>
+                  </button>
                   <button
                     onClick={() => handleDelete(material.id)}
                     className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm"

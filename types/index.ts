@@ -75,6 +75,7 @@ export interface ImageGenerationConfig {
 export interface ImageGenerationResult {
   id: string;
   imageUrl: string;
+  imageBase64?: string; // Base64 de la imagen del backend
   descripcion: string;
   tema: string;
   createdAt: Date;
@@ -86,11 +87,19 @@ export interface TemaGenerationConfig {
   nivelEducativo: string;
 }
 
+export interface CourseTopic {
+  title: string;
+  objective: string;
+  estimated_sessions: number;
+  summary: string;
+}
+
 export interface TemaGenerationResult {
   id: string;
   titulo: string;
-  contenido: string;
+  descripcion: string;
   nivelEducativo: string;
+  topics: CourseTopic[];
   createdAt: Date;
 }
 

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { TemaGenerationConfig, TemaGenerationResult } from '@/types';
 import { generarPDFTema } from '@/lib/pdf-generator';
+import { API_CONFIG, apiFetch } from '@/lib/api-config';
 
 export default function GeneradorTemasPage() {
   const [config, setConfig] = useState<TemaGenerationConfig>({
@@ -42,54 +43,35 @@ export default function GeneradorTemasPage() {
     setIsLoading(true);
     setResultado(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
       const payload = {
         titulo: config.titulo,
         descripcion: config.descripcion,
         nivelEducativo: config.nivelEducativo,
       };
 
-      const response = await fetch(`${apiUrl}/temas/generar`, {
+      const data = await apiFetch(API_CONFIG.endpoints.generateCourseTopics, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      const contentType = response.headers.get('content-type') || '';
-      let data: any = null;
-
-      if (contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        const text = await response.text();
-        throw new Error(`Error HTTP ${response.status}: ${text || response.statusText}`);
-      }
-
-      const success = response.ok && (data?.success ?? true);
-
-      if (!success) {
-        const message =
-          data?.error ||
-          data?.message ||
-          data?.detail ||
-          response.statusText ||
-          'No se pudo generar el tema';
+      if (!data.success) {
+        const message = data?.error || data?.message || 'No se pudo generar el tema';
         throw new Error(message);
       }
 
-      // Construir resultado
-      const contenido = data?.data?.contenido || data?.contenido || '';
+      // La respuesta viene en data.data con la estructura de OpenAI
+      const topics = data.data?.topics || [];
 
-      if (!contenido) {
-        throw new Error('No se recibió contenido del tema');
+      if (!topics.length) {
+        throw new Error('No se generaron temas');
       }
 
       setResultado({
-        id: data?.data?.id || `tema-${Date.now()}`,
-        titulo: config.titulo,
-        contenido: contenido,
-        nivelEducativo: config.nivelEducativo,
+        id: `tema-${Date.now()}`,
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        nivelEducativo: data.nivelEducativo,
+        topics: topics,
         createdAt: new Date(),
       });
     } catch (error: any) {
@@ -102,15 +84,34 @@ export default function GeneradorTemasPage() {
 
   const handleDescargarPDF = () => {
     if (!resultado) return;
+
+    // Convertir topics a contenido de texto
+    const contenido = resultado.topics.map((topic, index) =>
+      `${index + 1}. ${topic.title}\n` +
+      `   Objetivo: ${topic.objective}\n` +
+      `   Sesiones: ${topic.estimated_sessions}\n` +
+      `   Resumen: ${topic.summary}\n`
+    ).join('\n');
+
     generarPDFTema({
       titulo: resultado.titulo,
-      contenido: resultado.contenido,
+      contenido: contenido,
       nivelEducativo: resultado.nivelEducativo,
     });
   };
 
   const handleDescargarWord = () => {
     if (!resultado) return;
+
+    // Convertir topics a HTML
+    const topicsHTML = resultado.topics.map((topic, index) => `
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #3498db;">${index + 1}. ${topic.title}</h2>
+        <p><strong>Objetivo:</strong> ${topic.objective}</p>
+        <p><strong>Sesiones estimadas:</strong> ${topic.estimated_sessions}</p>
+        <p><strong>Resumen:</strong> ${topic.summary}</p>
+      </div>
+    `).join('');
 
     // Crear contenido HTML formateado para Word
     const htmlContent = `
@@ -132,6 +133,10 @@ export default function GeneradorTemasPage() {
             padding-bottom: 10px;
             margin-bottom: 20px;
           }
+          h2 {
+            color: #3498db;
+            font-size: 14pt;
+          }
           .metadata {
             color: #7f8c8d;
             font-size: 10pt;
@@ -146,10 +151,11 @@ export default function GeneradorTemasPage() {
       <body>
         <h1>${resultado.titulo}</h1>
         <div class="metadata">
+          <p><strong>Descripción:</strong> ${resultado.descripcion}</p>
           <p><strong>Nivel Educativo:</strong> ${resultado.nivelEducativo}</p>
           <p><strong>Fecha de generación:</strong> ${new Date(resultado.createdAt).toLocaleDateString('es-ES')}</p>
         </div>
-        <div>${resultado.contenido.replace(/\n/g, '<br>')}</div>
+        ${topicsHTML}
       </body>
       </html>
     `;
@@ -171,11 +177,17 @@ export default function GeneradorTemasPage() {
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
-
       // Crear archivo .txt con el contenido del tema
       const txtFileName = `${resultado.titulo.replace(/\s+/g, '_')}.txt`;
-      const textContent = `${resultado.titulo}\n\nNivel: ${resultado.nivelEducativo}\n\n${resultado.contenido}`;
+
+      const textContent = `${resultado.titulo}\n\nDescripción: ${resultado.descripcion}\nNivel: ${resultado.nivelEducativo}\n\n` +
+        resultado.topics.map((topic, index) =>
+          `${index + 1}. ${topic.title}\n` +
+          `   Objetivo: ${topic.objective}\n` +
+          `   Sesiones: ${topic.estimated_sessions}\n` +
+          `   Resumen: ${topic.summary}\n`
+        ).join('\n');
+
       const textBlob = new Blob([textContent], { type: 'text/plain' });
       const txtFile = new File([textBlob], txtFileName, { type: 'text/plain' });
 
@@ -183,17 +195,11 @@ export default function GeneradorTemasPage() {
       const uploadFormData = new FormData();
       uploadFormData.append('file', txtFile);
 
-      const uploadResponse = await fetch(`${apiUrl}/materiales/upload`, {
+      const uploadData = await apiFetch(API_CONFIG.endpoints.uploadMaterial, {
         method: 'POST',
         body: uploadFormData,
+        headers: {}, // Dejar que el navegador establezca el Content-Type para FormData
       });
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        throw new Error(errorData.error || 'Error al subir archivo a Supabase');
-      }
-
-      const uploadData = await uploadResponse.json();
 
       if (!uploadData.success) {
         throw new Error('No se pudo subir el archivo a Supabase');
@@ -290,16 +296,37 @@ export default function GeneradorTemasPage() {
 
           <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
             <p className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="font-semibold">Descripción:</span> {resultado.descripcion}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-semibold">Nivel:</span> {resultado.nivelEducativo}
             </p>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-semibold">Generado:</span> {new Date(resultado.createdAt).toLocaleDateString('es-ES')}
             </p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              <span className="font-semibold">Total de temas:</span> {resultado.topics.length}
+            </p>
           </div>
 
           <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-4 max-h-96 overflow-y-auto">
-            <div className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
-              {resultado.contenido}
+            <div className="space-y-6">
+              {resultado.topics.map((topic, index) => (
+                <div key={index} className="border-l-4 border-indigo-500 pl-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {index + 1}. {topic.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <span className="font-semibold">Objetivo:</span> {topic.objective}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    <span className="font-semibold">Sesiones estimadas:</span> {topic.estimated_sessions}
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {topic.summary}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
