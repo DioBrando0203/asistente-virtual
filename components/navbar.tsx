@@ -20,7 +20,7 @@ export function Navbar() {
                 loop={true}
                 autoplay={true}
               />
-              Asistente Educativo
+              Asistente Virtual
             </Link>
             <div className="hidden md:flex md:space-x-4 md:items-center">
               <Link href="/cuestionarios" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
