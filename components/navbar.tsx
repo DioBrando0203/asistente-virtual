@@ -32,14 +32,14 @@ export function Navbar() {
               <Link href="/evaluador" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
                 Evaluador
               </Link>
-              <Link href="/materiales" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
-                Materiales
-              </Link>
               <Link href="/generador-imagenes" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
                 Imágenes
               </Link>
               <Link href="/generador-temas" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
                 Temas
+              </Link>
+               <Link href="/materiales" className="text-gray-800 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 rounded-md text-sm font-medium">
+                Materiales
               </Link>
             </div>
           </div>

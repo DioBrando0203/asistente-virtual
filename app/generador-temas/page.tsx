@@ -229,7 +229,7 @@ export default function GeneradorTemasPage() {
               type="text"
               value={config.titulo}
               onChange={(e) => setConfig({ ...config, titulo: e.target.value })}
-              placeholder="Ejemplo: Algoritmos de Ordenamiento"
+              placeholder="Ejemplo: Contaminación del agua y sus efectos en el medio ambiente"
               className="w-full px-4 py-2 border border-black/20 dark:border-white/20 rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
