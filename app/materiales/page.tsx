@@ -263,17 +263,36 @@ export default function MaterialesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('¿Estás seguro de eliminar este material?')) return;
+  const handleDelete = async (material: Material) => {
+    if (!confirm(`¿Estás seguro de eliminar "${material.nombre}"?\n\nEsta acción eliminará el archivo permanentemente del bucket de Supabase.`)) return;
 
     try {
-      // NOTA: Esta funcionalidad requiere una API de eliminación en el backend
-      // Por ahora solo ocultamos del estado local
-      setMateriales((prev) => prev.filter((mat) => mat.id !== id));
-      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminación en el backend)');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+
+      const response = await fetch(`${apiUrl}/materiales/delete`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nombre: material.nombre
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'No se pudo eliminar el archivo');
+      }
+
+      // Actualizar la lista local eliminando el material
+      setMateriales((prev) => prev.filter((mat) => mat.id !== material.id));
+
+      alert(data.message || '¡Material eliminado exitosamente del bucket!');
     } catch (error) {
-      console.error(error);
-      alert('Error al eliminar material');
+      console.error('Error al eliminar material:', error);
+      const message = error instanceof Error ? error.message : 'Error al eliminar material';
+      alert(`Error: ${message}`);
     }
   };
 
@@ -415,7 +434,7 @@ export default function MaterialesPage() {
                     Descargar
                   </button>
                   <button
-                    onClick={() => handleDelete(material.id)}
+                    onClick={() => handleDelete(material)}
                     className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 text-sm"
                   >
                     Eliminar
