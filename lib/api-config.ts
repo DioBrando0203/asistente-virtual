@@ -4,8 +4,8 @@
  */
 
 export const API_CONFIG = {
-  // URL base del API - cambiar según el entorno
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://136.116.238.134/api',
+  // URL base del API - usa el proxy en producción
+  baseURL: process.env.NEXT_PUBLIC_API_URL || '/api/proxy',
 
   // Endpoints disponibles
   endpoints: {
