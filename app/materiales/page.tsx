@@ -104,6 +104,38 @@ export default function MaterialesPage() {
     }
   };
 
+  // Función para generar un nombre único verificando contra los archivos existentes
+  const generarNombreUnico = (nombreBase: string): string => {
+    // Obtener todos los nombres de archivos existentes
+    const nombresExistentes = materiales.map(m => m.nombre.toLowerCase());
+
+    // Si el nombre no existe, retornarlo tal cual
+    const nombreCompleto = `${nombreBase}.txt`;
+    if (!nombresExistentes.includes(nombreCompleto.toLowerCase())) {
+      return nombreBase;
+    }
+
+    // Si existe, agregar sufijos (1), (2), etc.
+    let contador = 1;
+    let nombreNuevo = '';
+
+    while (true) {
+      nombreNuevo = `${nombreBase} (${contador})`;
+      const nombreCompletoNuevo = `${nombreNuevo}.txt`;
+
+      if (!nombresExistentes.includes(nombreCompletoNuevo.toLowerCase())) {
+        return nombreNuevo;
+      }
+
+      contador++;
+
+      // Prevenir bucle infinito (máximo 1000 intentos)
+      if (contador > 1000) {
+        return `${nombreBase} (${Date.now()})`;
+      }
+    }
+  };
+
   const handleUpload = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formElement = e.currentTarget;
@@ -119,7 +151,7 @@ export default function MaterialesPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-      // PASO 1: Enviar archivo al backend para extracciИn de texto
+      // PASO 1: Enviar archivo al backend para extracción de texto
       const extractFormData = new FormData();
       extractFormData.append('file', file);
 
@@ -148,9 +180,16 @@ export default function MaterialesPage() {
 
       setExtractedPreview(extractedText);
 
-      // PASO 2: Crear archivo .txt con el texto extraído
+      // PASO 2: Verificar y generar nombre único
       const baseName = file.name.replace(/\.[^/.]+$/, '') || 'material';
-      const txtFileName = `${baseName}.txt`;
+      const nombreUnico = generarNombreUnico(baseName);
+      const txtFileName = `${nombreUnico}.txt`;
+
+      // Mostrar mensaje si se cambió el nombre
+      if (nombreUnico !== baseName) {
+        console.log(`Nombre de archivo ajustado: ${baseName}.txt → ${txtFileName}`);
+      }
+
       const textBlob = new Blob([extractedText], { type: 'text/plain' });
       const txtFile = new File([textBlob], txtFileName, { type: 'text/plain' });
 
@@ -182,7 +221,13 @@ export default function MaterialesPage() {
       // PASO 4: Recargar la lista completa de materiales desde Supabase
       await cargarMateriales();
 
-      alert('雁Archivo subido exitosamente a Supabase!');
+      // Mensaje de éxito con información del nombre
+      if (nombreUnico !== baseName) {
+        alert(`¡Archivo subido exitosamente!\n\nNombre original: ${baseName}.txt\nNombre guardado: ${txtFileName}\n\nSe detectó un archivo con el mismo nombre, por lo que se agregó un sufijo.`);
+      } else {
+        alert(`¡Archivo subido exitosamente a Supabase!\n\nNombre: ${txtFileName}`);
+      }
+
       formElement.reset();
     } catch (error) {
       console.error(error);
@@ -219,13 +264,13 @@ export default function MaterialesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('隅Estケs seguro de eliminar este material?')) return;
+    if (!confirm('¿Estás seguro de eliminar este material?')) return;
 
     try {
-      // NOTA: Esta funcionalidad requiere una API de eliminaciИn en el backend
+      // NOTA: Esta funcionalidad requiere una API de eliminación en el backend
       // Por ahora solo ocultamos del estado local
       setMateriales((prev) => prev.filter((mat) => mat.id !== id));
-      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminaciИn en el backend)');
+      alert('Material eliminado de la vista (NOTA: Para eliminar permanentemente del bucket de Supabase, se necesita implementar una API de eliminación en el backend)');
     } catch (error) {
       console.error(error);
       alert('Error al eliminar material');
@@ -244,7 +289,7 @@ export default function MaterialesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">GestiИn de Materiales</h1>
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">Gestión de Materiales</h1>
 
       {/* Formulario de Subida */}
       <div className="bg-white dark:bg-gray-900 surface-border rounded-lg shadow-md p-6 mb-6">
@@ -262,7 +307,7 @@ export default function MaterialesPage() {
               required
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              El sistema extraerケ el texto y lo subirケ automケticamente a Supabase
+              El sistema extraerá el texto y lo subirá automáticamente a Supabase
             </p>
           </div>
           <button
