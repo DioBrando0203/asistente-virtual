@@ -21,7 +21,7 @@ function ResumenesLoading() {
 // Server Component que hace fetch en el servidor
 async function getTemasDisponibles() {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
     const response = await fetch(`${apiUrl}/materiales/list-topics`, {
       next: { revalidate: 60 } // Cache por 60 segundos
     });

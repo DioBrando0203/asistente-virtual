@@ -31,7 +31,7 @@ export default function EvaluadorPage() {
     const cargarTemas = async () => {
       setIsLoadingTemas(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
         const response = await fetch(`${apiUrl}/materiales/list-topics`);
 
         if (!response.ok) {
@@ -76,7 +76,7 @@ export default function EvaluadorPage() {
 
     setIsLoadingContenido(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
       const archivoConExtension = nombreArchivo.endsWith('.txt') ? nombreArchivo : `${nombreArchivo}.txt`;
 
       const response = await fetch(`${apiUrl}/materiales/list-topics-with-content`);
@@ -129,7 +129,7 @@ export default function EvaluadorPage() {
       // Cargar el contenido del material antes de evaluar
       const contenido = await cargarContenidoTema(config.temaCurso);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       // Agregar contenido del material al payload
       const payload = {

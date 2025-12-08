@@ -42,7 +42,7 @@ export default function GeneradorTemasPage() {
     setIsLoading(true);
     setResultado(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       const payload = {
         titulo: config.titulo,
@@ -171,7 +171,7 @@ export default function GeneradorTemasPage() {
 
     setIsUploading(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       // Crear archivo .txt con el contenido del tema
       const txtFileName = `${resultado.titulo.replace(/\s+/g, '_')}.txt`;

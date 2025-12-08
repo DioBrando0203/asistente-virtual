@@ -24,7 +24,7 @@ export default function CuestionariosPage() {
     const cargarTemas = async () => {
       setIsLoadingTemas(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
         const response = await fetch(`${apiUrl}/materiales/list-topics`);
 
         if (!response.ok) {
@@ -69,7 +69,7 @@ export default function CuestionariosPage() {
 
     setIsLoadingContenido(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
       // Agregar extensión .txt si no la tiene
       const archivoConExtension = nombreArchivo.endsWith('.txt') ? nombreArchivo : `${nombreArchivo}.txt`;
 
@@ -126,7 +126,7 @@ export default function CuestionariosPage() {
       // Cargar el contenido del material antes de generar
       const contenido = await cargarContenidoTema(config.tema);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://chatbotapi.test/api";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
       // Agregar contenido del material al payload
       const payload = {

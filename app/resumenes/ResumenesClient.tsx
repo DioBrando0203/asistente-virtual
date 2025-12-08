@@ -33,7 +33,7 @@ export default function ResumenesClient({ temasDisponibles }: ResumenesClientPro
 
     setIsLoadingContenido(true);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
       const archivoConExtension = nombreArchivo.endsWith('.txt') ? nombreArchivo : `${nombreArchivo}.txt`;
 
       const response = await fetch(`${apiUrl}/materiales/list-topics-with-content`);
@@ -81,7 +81,7 @@ export default function ResumenesClient({ temasDisponibles }: ResumenesClientPro
     try {
       const contenido = await cargarContenidoTema(config.tema);
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       const payload = {
         ...config,

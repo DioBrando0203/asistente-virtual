@@ -20,7 +20,7 @@ export default function GeneradorImagenesPage() {
     const cargarTemas = async () => {
       setIsLoadingTemas(true);
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
         const response = await fetch(`${apiUrl}/materiales/list-topics`);
 
         if (!response.ok) {
@@ -73,7 +73,7 @@ export default function GeneradorImagenesPage() {
     setIsLoading(true);
     setResultado(null);
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://chatbotapi.test/api';
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
       const payload = {
         tema: temaFinal,
