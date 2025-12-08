@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: 'Gestión de Materiales',
-    description: 'Sube y gestiona PDFs, imágenes y documentos del curso',
+    description: 'Sube y gestiona PDFs y documentos del curso',
     href: '/materiales',
     color: 'bg-orange-500',
     icon: (
@@ -60,7 +60,7 @@ const features = [
   },
   {
     title: 'Generador de Temas',
-    description: 'Crea contenido educativo completo adaptado al nivel de tus estudiantes',
+    description: 'Crea contenido educativo para tus estudiantes',
     href: '/generador-temas',
     color: 'bg-teal-500',
     icon: (
@@ -75,6 +75,17 @@ export default function Home() {
   return (
     <div className="px-4 py-10 min-h-screen">
       <div className="max-w-6xl mx-auto">
+        {/* Encabezado */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            Microservicio IA - Chamilo CTA
+          </h1>
+          <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto">
+            Asistente inteligente para el curso de Ciencia, Tecnología y Ambiente
+          </p>
+          <div className="mt-4 h-1 w-32 bg-gradient-to-r from-indigo-500 to-purple-600 mx-auto rounded-full"></div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {features.map((feature) => (
           <Link
