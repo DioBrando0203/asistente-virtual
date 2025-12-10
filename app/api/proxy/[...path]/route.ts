@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// URL del backend (HTTP)
-const BACKEND_URL = 'http://136.116.238.134/api';
+// URL base del backend. Incluimos el prefijo /api que expone Laravel.
+// Puedes sobreescribirla vía BACKEND_URL o NEXT_PUBLIC_BACKEND_URL.
+const BACKEND_URL =
+  (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL)?.replace(/\/$/, '') ||
+  'https://chatbotapi-668471553054.us-central1.run.app/api';
+
+const buildUrl = (path: string, searchParams?: string) => {
+  const cleanPath = path.replace(/^\/+/, '');
+  const query = searchParams ? `?${searchParams}` : '';
+  return `${BACKEND_URL}/${cleanPath}${query}`;
+};
 
 // Handler para GET
 export async function GET(
@@ -11,7 +20,7 @@ export async function GET(
   const resolvedParams = await params;
   const path = resolvedParams.path.join('/');
   const searchParams = request.nextUrl.searchParams.toString();
-  const url = `${BACKEND_URL}/${path}${searchParams ? `?${searchParams}` : ''}`;
+  const url = buildUrl(path, searchParams);
 
   try {
     const response = await fetch(url, {
@@ -46,7 +55,7 @@ export async function POST(
 ) {
   const resolvedParams = await params;
   const path = resolvedParams.path.join('/');
-  const url = `${BACKEND_URL}/${path}`;
+  const url = buildUrl(path);
 
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -94,7 +103,7 @@ export async function DELETE(
 ) {
   const resolvedParams = await params;
   const path = resolvedParams.path.join('/');
-  const url = `${BACKEND_URL}/${path}`;
+  const url = buildUrl(path);
 
   try {
     let body;
@@ -137,7 +146,7 @@ export async function PUT(
 ) {
   const resolvedParams = await params;
   const path = resolvedParams.path.join('/');
-  const url = `${BACKEND_URL}/${path}`;
+  const url = buildUrl(path);
 
   try {
     const body = await request.text();
