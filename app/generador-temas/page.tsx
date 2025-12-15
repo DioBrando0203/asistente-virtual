@@ -177,9 +177,10 @@ export default function GeneradorTemasPage() {
 
     setIsUploading(true);
     try {
-      // Crear archivo .txt con el contenido del tema
-      const txtFileName = `${resultado.titulo.replace(/\s+/g, '_')}.txt`;
+      // Generar nombre base del archivo
+      const baseFileName = resultado.titulo.replace(/\s+/g, '_');
 
+      // Crear contenido del archivo
       const textContent = `${resultado.titulo}\n\nDescripción: ${resultado.descripcion}\nNivel: ${resultado.nivelEducativo}\n\n` +
         resultado.topics.map((topic, index) =>
           `${index + 1}. ${topic.title}\n` +
@@ -189,27 +190,53 @@ export default function GeneradorTemasPage() {
         ).join('\n');
 
       const textBlob = new Blob([textContent], { type: 'text/plain' });
-      const txtFile = new File([textBlob], txtFileName, { type: 'text/plain' });
 
-      // Subir el archivo .txt a Supabase usando el endpoint existente
-      const uploadFormData = new FormData();
-      uploadFormData.append('file', txtFile);
+      // Intentar subir el archivo, si falla por duplicado, reintentar con (1), (2), etc.
+      let finalFileName = `${baseFileName}.txt`;
+      let counter = 1;
+      let uploadSuccess = false;
+      const maxRetries = 50; // Máximo de intentos
 
-      const uploadData = await apiFetch(API_CONFIG.endpoints.uploadMaterial, {
-        method: 'POST',
-        body: uploadFormData,
-        headers: {}, // Dejar que el navegador establezca el Content-Type para FormData
-      });
+      while (!uploadSuccess && counter <= maxRetries) {
+        try {
+          const txtFile = new File([textBlob], finalFileName, { type: 'text/plain' });
 
-      if (!uploadData.success) {
-        throw new Error('No se pudo subir el archivo a Supabase');
+          const uploadFormData = new FormData();
+          uploadFormData.append('file', txtFile);
+
+          const uploadData = await apiFetch(API_CONFIG.endpoints.uploadMaterial, {
+            method: 'POST',
+            body: uploadFormData,
+            headers: {}, // Dejar que el navegador establezca el Content-Type para FormData
+          });
+
+          if (uploadData.success) {
+            uploadSuccess = true;
+            alert(`¡Tema subido exitosamente al bucket como "${finalFileName}"!\nAhora puedes verlo en Gestión de Materiales.`);
+          } else {
+            throw new Error(uploadData.error || 'Error al subir');
+          }
+        } catch (error: any) {
+          const errorMessage = error?.message || '';
+
+          // Si es un error de duplicado (409), intentar con siguiente número
+          if (errorMessage.includes('409') || errorMessage.includes('Duplicate') || errorMessage.includes('already exists')) {
+            finalFileName = `${baseFileName}_(${counter}).txt`;
+            counter++;
+          } else {
+            // Si es otro tipo de error, lanzarlo
+            throw error;
+          }
+        }
       }
 
-      alert('¡Tema subido exitosamente al bucket! Ahora puedes verlo en Gestión de Materiales.');
+      if (!uploadSuccess) {
+        throw new Error('No se pudo encontrar un nombre único después de ' + maxRetries + ' intentos');
+      }
     } catch (error) {
       console.error(error);
       const message = error instanceof Error ? error.message : 'Error al subir al bucket';
-      alert(message);
+      alert(`Error: ${message}`);
     } finally {
       setIsUploading(false);
     }
