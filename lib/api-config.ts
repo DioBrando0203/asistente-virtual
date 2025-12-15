@@ -27,8 +27,8 @@ export const API_CONFIG = {
     // Evaluador
     evaluateAnswer: '/evaluador/evaluar',
 
-    // Temas (Course Topics)
-    generateCourseTopics: '/courses/generate-topics',
+    // Temas (Course Topics) - USA LA API LOCAL DE NEXT.JS
+    generateCourseTopics: '/api/courses/generate-topics',
   },
 
   // Configuración de timeout
@@ -45,6 +45,12 @@ export const API_CONFIG = {
  * Helper para construir URLs completas
  */
 export const getApiUrl = (endpoint: string): string => {
+  // Si el endpoint comienza con /api/, es una ruta local de Next.js
+  // No agregar el baseURL del proxy
+  if (endpoint.startsWith('/api/')) {
+    return endpoint;
+  }
+
   return `${API_CONFIG.baseURL}${endpoint}`;
 };
 
